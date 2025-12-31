@@ -27,6 +27,7 @@ dev_dependencies:
     sdk: flutter
   # flutter native splash dependencies
   flutter_native_splash: ^2.3.10
+  image_picker: ^1.0.7
   http: ^1.2.0
   jwt_decoder: ^2.0.1
   shared_preferences: ^2.2.2

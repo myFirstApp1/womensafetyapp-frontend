@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'edit_profile_screen.dart';
 
@@ -16,25 +19,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool loading = true;
 
   String name = "";
-  String ?email;
+  String? email;
   String phone = "";
   String address = "";
   bool isVerified = false;
   String? profileImageUrl;
 
+  final ImagePicker _picker = ImagePicker(); // ✅ NEW
+
   @override
   void initState() {
     super.initState();
     _fetchProfile();
-    loadEmail();
   }
 
-  Future<void> loadEmail() async{
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      email = prefs.getString('email')!;
-    });
+  // ================= EMAIL FROM JWT (UNCHANGED) =================
+
+  String? _extractEmailFromToken(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+
+      final payloadDecoded = utf8.decode(
+        base64Url.decode(base64Url.normalize(parts[1])),
+      );
+
+      final Map<String, dynamic> decoded = jsonDecode(payloadDecoded);
+      return decoded['email'];
+    } catch (_) {
+      return null;
+    }
   }
+
+  // ================= PROFILE API (UNCHANGED) =================
 
   Future<void> _fetchProfile() async {
     try {
@@ -42,13 +59,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final token = prefs.getString("token");
       final userId = prefs.getString("userId");
 
-      debugPrint("🟡 USER ID: $userId");
-      debugPrint("🟡 TOKEN: $token");
+      if (token == null || userId == null) {
+        _showError("Session expired. Please login again.");
+        return;
+      }
 
       const baseUrl = "http://192.168.1.6:8082";
       final url = Uri.parse("$baseUrl/api/users/$userId");
-
-      debugPrint("🟡 PROFILE API URL: $url");
 
       final response = await http.get(
         url,
@@ -58,80 +75,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
       );
 
-      debugPrint("🟢 STATUS CODE: ${response.statusCode}");
-      debugPrint("🟢 RAW RESPONSE BODY: ${response.body}");
-
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-
-        debugPrint("🟢 PARSED BODY: $body");
-
-        final data = body;
-        debugPrint("🟢 DATA OBJECT: $data");
+        final data = jsonDecode(response.body);
+        final resolvedEmail =
+            data["email"] ?? _extractEmailFromToken(token);
 
         setState(() {
-          name = data?["name"] ?? "";
-          email = data?["email"] ?? "";
-          phone = data?["phone"] ?? "";
-          address = data?["address"] ?? "";
-          isVerified = data?["isVerified"] ?? false;
-          profileImageUrl = data?["profilePictureUrl"];
+          name = data["name"] ?? "";
+          email = resolvedEmail;
+          phone = data["phone"] ?? "";
+          address = data["address"] ?? "";
+          isVerified = data["isVerified"] ?? false;
+          profileImageUrl = data["profilePictureUrl"];
           loading = false;
         });
       } else {
         _showError("Failed to load profile");
       }
     } catch (e) {
-      debugPrint("🔴 PROFILE FETCH ERROR: $e");
       _showError("Something went wrong");
     }
   }
-
-  // Future<void> _fetchProfile() async {
-  //   try {
-  //     final prefs = await SharedPreferences.getInstance();
-  //     final token = prefs.getString("token");
-  //     final userId = prefs.getString("userId");
-  //
-  //     if (token == null || userId == null) {
-  //       _showError("Session expired. Please login again.");
-  //       return;
-  //     }
-  //
-  //     const baseUrl = "http://192.168.1.3:8082"; // User Service
-  //     final url = Uri.parse("$baseUrl/api/users/$userId");
-  //
-  //     final response = await http.get(
-  //       url,
-  //       headers: {
-  //         "Authorization": "Bearer $token",
-  //         "Content-Type": "application/json",
-  //       },
-  //     );
-  //
-  //     debugPrint("PROFILE STATUS: ${response.statusCode}");
-  //     debugPrint("PROFILE BODY: ${response.body}");
-  //
-  //     if (response.statusCode == 200) {
-  //       final data = jsonDecode(response.body); // ✅ FIX: no ["data"]
-  //
-  //       setState(() {
-  //         name = data["name"] ?? "";
-  //         email = data["email"] ?? ""; // may be null
-  //         phone = data["phone"] ?? "";
-  //         address = data["address"] ?? "";
-  //         isVerified = data["isVerified"] ?? false;
-  //         profileImageUrl = data["profilePictureUrl"];
-  //         loading = false;
-  //       });
-  //     } else {
-  //       _showError("Failed to load profile");
-  //     }
-  //   } catch (e) {
-  //     debugPrint("PROFILE ERROR: $e");
-  //     _showError("Something went wrong");
-  //   }
-  // }
 
   void _showError(String msg) {
     if (!mounted) return;
@@ -139,6 +103,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
   }
+
+  // ================= PROFILE IMAGE OPTIONS (NEW) =================
+
+  void _showImageOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo),
+            title: const Text("Choose from Gallery"),
+            onTap: () {
+              Navigator.pop(context);
+              _pickFromGallery();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.camera_alt),
+            title: const Text("Take Photo"),
+            onTap: () {
+              Navigator.pop(context);
+              _takePhoto();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.link),
+            title: const Text("Paste Image URL"),
+            onTap: () {
+              Navigator.pop(context);
+              _showImageUrlDialog();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickFromGallery() async {
+    final image =
+    await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (image != null) {
+      setState(() => profileImageUrl = image.path); // TEMP PREVIEW
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    final image =
+    await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+    if (image != null) {
+      setState(() => profileImageUrl = image.path); // TEMP PREVIEW
+    }
+  }
+
+  void _showImageUrlDialog() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Paste Image URL"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: "https://example.com/photo.jpg",
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => profileImageUrl = controller.text.trim());
+              Navigator.pop(context);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= UI =================
 
   @override
   Widget build(BuildContext context) {
@@ -156,42 +208,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // 🔹 Avatar
-            Center(
-              child: Column(
+            // 🔹 Avatar with Edit Overlay
+            GestureDetector(
+              onTap: _showImageOptions,
+              child: Stack(
+                alignment: Alignment.bottomRight,
                 children: [
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.grey.shade200,
                     backgroundImage: profileImageUrl != null
                         ? NetworkImage(profileImageUrl!)
-                        : const AssetImage(
-                      "assets/images/avatar.png",
-                    ) as ImageProvider,
+                        : const AssetImage("assets/images/avatar.png")
+                    as ImageProvider,
                   ),
-                  const SizedBox(height: 12),
-
-                  Text(
-                    name.isNotEmpty ? name : "Not set",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  Text(
-                    email != null && email!.isNotEmpty ? email! : "—",
-                    style: const TextStyle(color: Colors.black54),
-                  ),
+                  const CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.edit, size: 18),
+                  )
                 ],
               ),
             ),
 
+            const SizedBox(height: 12),
+
+            Text(
+              name.isNotEmpty ? name : "Not set",
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              email != null && email!.isNotEmpty ? email! : "—",
+              style: const TextStyle(color: Colors.black54),
+            ),
+
             const SizedBox(height: 30),
 
-            // 🔹 Info Card
             _ProfileCard(
               title: "Personal Information",
               children: [
@@ -206,7 +264,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 30),
 
-            // 🔹 Edit Button
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -219,15 +276,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   );
 
-                  // ✅ STEP 4 – refresh after update
                   if (updated == true) {
                     setState(() => loading = true);
                     _fetchProfile();
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                  const Color(0xFFD4AF37),
+                  backgroundColor: const Color(0xFFD4AF37),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -242,7 +297,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ---------------- Reusable Widgets ----------------
+// ================= REUSABLE WIDGETS (UNCHANGED) =================
 
 class _ProfileCard extends StatelessWidget {
   final String title;
@@ -299,8 +354,7 @@ class _ProfileRow extends StatelessWidget {
             flex: 3,
             child: Text(
               label,
-              style:
-              const TextStyle(color: Colors.black54),
+              style: const TextStyle(color: Colors.black54),
             ),
           ),
           Expanded(

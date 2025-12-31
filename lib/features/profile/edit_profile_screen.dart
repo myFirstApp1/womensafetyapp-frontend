@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -19,13 +22,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   bool loading = false;
 
+  // ✅ NEW
+  final ImagePicker _picker = ImagePicker();
+  String? profileImageUrl;
+
   @override
   void initState() {
     super.initState();
-    _fetchProfileForEdit(); // ✅ load from backend
+    _fetchProfileForEdit();
   }
 
-  // 🔹 STEP 1: Load existing profile from backend
+  // 🔹 Load existing profile
   Future<void> _fetchProfileForEdit() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -52,6 +59,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           nameCtrl.text = data["name"] ?? "";
           phoneCtrl.text = data["phone"] ?? "";
           addressCtrl.text = data["address"] ?? "";
+          profileImageUrl = data["profilePictureUrl"];
         });
       }
     } catch (e) {
@@ -59,7 +67,93 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // 🔹 STEP 2: Update profile
+  // ================= PROFILE IMAGE OPTIONS =================
+
+  void _showImageOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo),
+            title: const Text("Choose from Gallery"),
+            onTap: () {
+              Navigator.pop(context);
+              _pickFromGallery();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.camera_alt),
+            title: const Text("Take Photo"),
+            onTap: () {
+              Navigator.pop(context);
+              _takePhoto();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.link),
+            title: const Text("Paste Image URL"),
+            onTap: () {
+              Navigator.pop(context);
+              _showImageUrlDialog();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickFromGallery() async {
+    final image =
+    await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (image != null) {
+      setState(() => profileImageUrl = image.path);
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    final image =
+    await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+    if (image != null) {
+      setState(() => profileImageUrl = image.path);
+    }
+  }
+
+  void _showImageUrlDialog() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Paste Image URL"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: "https://example.com/photo.jpg",
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => profileImageUrl = controller.text.trim());
+              Navigator.pop(context);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔹 Update profile (UNCHANGED API)
   Future<void> updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -89,21 +183,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           "name": nameCtrl.text.trim(),
           "phone": phoneCtrl.text.trim(),
           "address": addressCtrl.text.trim(),
+          "profilePictureUrl": profileImageUrl, // ✅ added
         }),
       );
 
       setState(() => loading = false);
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        // ✅ Return success to ProfileScreen
         Navigator.pop(context, true);
       } else {
-        debugPrint("UPDATE PROFILE FAILED: ${response.body}");
         _showSnack("Failed to update profile");
       }
     } catch (e) {
       setState(() => loading = false);
-      debugPrint("UPDATE PROFILE ERROR: $e");
       _showSnack("Something went wrong");
     }
   }
@@ -122,6 +214,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  // ================= UI =================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,6 +228,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           key: _formKey,
           child: Column(
             children: [
+              // 🔹 Profile Picture Edit
+              GestureDetector(
+                onTap: _showImageOptions,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.grey.shade200,
+                      backgroundImage: profileImageUrl != null
+                          ? (profileImageUrl!.startsWith("http")
+                          ? NetworkImage(profileImageUrl!)
+                          : FileImage(File(profileImageUrl!)))
+                          : const AssetImage(
+                        "assets/images/avatar.png",
+                      ) as ImageProvider,
+                    ),
+                    const CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.white,
+                      child: Icon(Icons.edit, size: 18),
+                    )
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               TextFormField(
                 controller: nameCtrl,
                 decoration: const InputDecoration(labelText: "Name"),
@@ -160,9 +282,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: ElevatedButton(
                   onPressed: loading ? null : updateProfile,
                   child: loading
-                      ? const CircularProgressIndicator(
-                    color: Colors.white,
-                  )
+                      ? const CircularProgressIndicator(color: Colors.white)
                       : const Text("Save Changes"),
                 ),
               ),
