@@ -24,10 +24,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   final ImagePicker _picker = ImagePicker();
 
-  /// 👇 can be either
-  /// - local file path (gallery/camera)
-  /// - remote URL (http)
+  /// ✅ Remote image URL (ONLY this goes to backend)
   String? profileImageUrl;
+
+  /// ✅ Local image for preview only
+  File? localImageFile;
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           phoneCtrl.text = data["phone"] ?? "";
           addressCtrl.text = data["address"] ?? "";
           profileImageUrl = data["profilePictureUrl"];
+          localImageFile = null; // ✅ reset preview
         });
       }
     } catch (e) {
@@ -87,7 +89,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 imageQuality: 70,
               );
               if (image != null) {
-                setState(() => profileImageUrl = image.path);
+                setState(() {
+                  localImageFile = File(image.path); // ✅ preview only
+                  profileImageUrl = null; // ❌ not saved
+                });
               }
             },
           ),
@@ -101,7 +106,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 imageQuality: 70,
               );
               if (image != null) {
-                setState(() => profileImageUrl = image.path);
+                setState(() {
+                  localImageFile = File(image.path); // ✅ preview only
+                  profileImageUrl = null;
+                });
               }
             },
           ),
@@ -127,8 +135,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         title: const Text("Paste Image URL"),
         content: TextField(
           controller: controller,
-          decoration:
-          const InputDecoration(hintText: "https://example.com/photo.jpg"),
+          decoration: const InputDecoration(
+            hintText: "https://example.com/photo.jpg",
+          ),
         ),
         actions: [
           TextButton(
@@ -139,7 +148,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             onPressed: () {
               final url = controller.text.trim();
               if (url.startsWith("http")) {
-                setState(() => profileImageUrl = url);
+                setState(() {
+                  profileImageUrl = url; // ✅ backend-safe
+                  localImageFile = null;
+                });
               }
               Navigator.pop(context);
             },
@@ -168,12 +180,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return;
       }
 
-      /// ✅ only save URL, NOT local file path
-      final String? imageToSave =
-      profileImageUrl != null && profileImageUrl!.startsWith("http")
-          ? profileImageUrl
-          : null;
-
       final url =
       Uri.parse("http://192.168.1.6:8082/api/users/$userId");
 
@@ -187,7 +193,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           "name": nameCtrl.text.trim(),
           "phone": phoneCtrl.text.trim(),
           "address": addressCtrl.text.trim(),
-          "profilePictureUrl": imageToSave,
+          "profilePictureUrl": profileImageUrl, // ✅ ONLY URL
         }),
       );
 
@@ -216,10 +222,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     ImageProvider avatar;
 
-    if (profileImageUrl != null && profileImageUrl!.isNotEmpty) {
-      avatar = profileImageUrl!.startsWith("http")
-          ? NetworkImage(profileImageUrl!)
-          : FileImage(File(profileImageUrl!));
+    if (localImageFile != null) {
+      avatar = FileImage(localImageFile!); // ✅ preview
+    } else if (profileImageUrl != null && profileImageUrl!.isNotEmpty) {
+      avatar = NetworkImage(profileImageUrl!); // ✅ saved image
     } else {
       avatar = const AssetImage("assets/images/avatar.png");
     }
