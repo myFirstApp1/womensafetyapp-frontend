@@ -32,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => loading = true);
 
-    const baseUrl = "http://192.168.1.6:8080";// "http://10.154.167.76:8080";
+    const baseUrl = "http://192.168.1.6:8080";
     final url = Uri.parse("$baseUrl/api/auth/login");
 
     try {
@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
           return;
         }
 
-// ✅ Handle login success properly
+//  Handle login success properly
         await handleLoginSuccess(
           token: token,
           userId: userId,

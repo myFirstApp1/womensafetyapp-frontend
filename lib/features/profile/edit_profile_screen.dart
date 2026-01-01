@@ -22,8 +22,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   bool loading = false;
 
-  // ✅ NEW
   final ImagePicker _picker = ImagePicker();
+
+  /// 👇 can be either
+  /// - local file path (gallery/camera)
+  /// - remote URL (http)
   String? profileImageUrl;
 
   @override
@@ -32,7 +35,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _fetchProfileForEdit();
   }
 
-  // 🔹 Load existing profile
   Future<void> _fetchProfileForEdit() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -41,8 +43,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (token == null || userId == null) return;
 
-      const baseUrl = "http://192.168.1.6:8082";
-      final url = Uri.parse("$baseUrl/api/users/$userId");
+      final url =
+      Uri.parse("http://192.168.1.6:8082/api/users/$userId");
 
       final response = await http.get(
         url,
@@ -67,31 +69,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // ================= PROFILE IMAGE OPTIONS =================
+  // ================= IMAGE OPTIONS =================
 
   void _showImageOptions() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
       builder: (_) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
             leading: const Icon(Icons.photo),
             title: const Text("Choose from Gallery"),
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              _pickFromGallery();
+              final image = await _picker.pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 70,
+              );
+              if (image != null) {
+                setState(() => profileImageUrl = image.path);
+              }
             },
           ),
           ListTile(
             leading: const Icon(Icons.camera_alt),
             title: const Text("Take Photo"),
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              _takePhoto();
+              final image = await _picker.pickImage(
+                source: ImageSource.camera,
+                imageQuality: 70,
+              );
+              if (image != null) {
+                setState(() => profileImageUrl = image.path);
+              }
             },
           ),
           ListTile(
@@ -107,22 +118,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Future<void> _pickFromGallery() async {
-    final image =
-    await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (image != null) {
-      setState(() => profileImageUrl = image.path);
-    }
-  }
-
-  Future<void> _takePhoto() async {
-    final image =
-    await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
-    if (image != null) {
-      setState(() => profileImageUrl = image.path);
-    }
-  }
-
   void _showImageUrlDialog() {
     final controller = TextEditingController();
 
@@ -132,9 +127,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         title: const Text("Paste Image URL"),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: "https://example.com/photo.jpg",
-          ),
+          decoration:
+          const InputDecoration(hintText: "https://example.com/photo.jpg"),
         ),
         actions: [
           TextButton(
@@ -143,7 +137,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              setState(() => profileImageUrl = controller.text.trim());
+              final url = controller.text.trim();
+              if (url.startsWith("http")) {
+                setState(() => profileImageUrl = url);
+              }
               Navigator.pop(context);
             },
             child: const Text("Save"),
@@ -153,7 +150,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // 🔹 Update profile (UNCHANGED API)
+  // ================= UPDATE PROFILE =================
+
   Future<void> updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -165,13 +163,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final userId = prefs.getString("userId");
 
       if (token == null || userId == null) {
-        _showSnack("Session expired. Please login again.");
+        _showSnack("Session expired");
         setState(() => loading = false);
         return;
       }
 
-      const baseUrl = "http://192.168.1.6:8082";
-      final url = Uri.parse("$baseUrl/api/users/$userId");
+      /// ✅ only save URL, NOT local file path
+      final String? imageToSave =
+      profileImageUrl != null && profileImageUrl!.startsWith("http")
+          ? profileImageUrl
+          : null;
+
+      final url =
+      Uri.parse("http://192.168.1.6:8082/api/users/$userId");
 
       final response = await http.put(
         url,
@@ -183,7 +187,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           "name": nameCtrl.text.trim(),
           "phone": phoneCtrl.text.trim(),
           "address": addressCtrl.text.trim(),
-          "profilePictureUrl": profileImageUrl, // ✅ added
+          "profilePictureUrl": imageToSave,
         }),
       );
 
@@ -206,56 +210,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         .showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  @override
-  void dispose() {
-    nameCtrl.dispose();
-    phoneCtrl.dispose();
-    addressCtrl.dispose();
-    super.dispose();
-  }
-
   // ================= UI =================
 
   @override
   Widget build(BuildContext context) {
+    ImageProvider avatar;
+
+    if (profileImageUrl != null && profileImageUrl!.isNotEmpty) {
+      avatar = profileImageUrl!.startsWith("http")
+          ? NetworkImage(profileImageUrl!)
+          : FileImage(File(profileImageUrl!));
+    } else {
+      avatar = const AssetImage("assets/images/avatar.png");
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Edit Profile"),
-      ),
+      appBar: AppBar(title: const Text("Edit Profile")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              // 🔹 Profile Picture Edit
               GestureDetector(
                 onTap: _showImageOptions,
                 child: Stack(
                   alignment: Alignment.bottomRight,
                   children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.grey.shade200,
-                      backgroundImage: profileImageUrl != null
-                          ? (profileImageUrl!.startsWith("http")
-                          ? NetworkImage(profileImageUrl!)
-                          : FileImage(File(profileImageUrl!)))
-                          : const AssetImage(
-                        "assets/images/avatar.png",
-                      ) as ImageProvider,
-                    ),
+                    CircleAvatar(radius: 50, backgroundImage: avatar),
                     const CircleAvatar(
                       radius: 16,
                       backgroundColor: Colors.white,
                       child: Icon(Icons.edit, size: 18),
-                    )
+                    ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
-
               TextFormField(
                 controller: nameCtrl,
                 decoration: const InputDecoration(labelText: "Name"),
@@ -265,8 +256,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: phoneCtrl,
-                keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(labelText: "Phone"),
+                keyboardType: TextInputType.phone,
                 validator: (v) =>
                 v == null || v.isEmpty ? "Phone is required" : null,
               ),

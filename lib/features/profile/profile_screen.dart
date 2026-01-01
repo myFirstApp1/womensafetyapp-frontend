@@ -222,11 +222,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         : const AssetImage("assets/images/avatar.png")
                     as ImageProvider,
                   ),
-                  const CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.edit, size: 18),
-                  )
                 ],
               ),
             ),
