@@ -1,0 +1,285 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:womensafetyapp/features/auth/screens/password_success_screen.dart';
+
+import 'login_screen.dart';
+
+class ResetPasswordScreen extends StatefulWidget {
+  final String token;
+
+  const ResetPasswordScreen({super.key, required this.token});
+
+  @override
+  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+}
+
+enum PasswordStrength { weak, medium, strong }
+
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmController = TextEditingController();
+
+  bool isLoading = false;
+  bool showPassword = false;
+  bool showConfirmPassword = false;
+
+  PasswordStrength _passwordStrength = PasswordStrength.weak;
+
+  final String baseUrl = "http://192.168.1.6:8080";
+
+  // 🔹 Password strength logic
+  PasswordStrength checkStrength(String password) {
+    if (password.length < 8) return PasswordStrength.weak;
+
+    final hasUpper = password.contains(RegExp(r'[A-Z]'));
+    final hasNumber = password.contains(RegExp(r'[0-9]'));
+    final hasSpecial =
+    password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+
+    if (hasUpper && hasNumber && hasSpecial) {
+      return PasswordStrength.strong;
+    }
+    return PasswordStrength.medium;
+  }
+
+  Color strengthColor() {
+    switch (_passwordStrength) {
+      case PasswordStrength.strong:
+        return Colors.green;
+      case PasswordStrength.medium:
+        return Colors.orange;
+      default:
+        return Colors.red;
+    }
+  }
+
+  String strengthText() {
+    switch (_passwordStrength) {
+      case PasswordStrength.strong:
+        return "Strong password";
+      case PasswordStrength.medium:
+        return "Medium password";
+      default:
+        return "Weak password";
+    }
+  }
+
+  Future<void> resetPassword() async {
+    final password = passwordController.text.trim();
+    final confirm = confirmController.text.trim();
+
+    if (_passwordStrength != PasswordStrength.strong) {
+      _showMessage("Please choose a strong password");
+      return;
+    }
+
+    if (password != confirm) {
+      _showMessage("Both passwords must match");
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/auth/reset-password"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "token": widget.token,
+          "newPassword": password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _showMessage("Password reset successful");
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const PasswordSuccessScreen(),
+          ),
+              (route) => false,
+        );
+
+      } else {
+        _showMessage("Reset password failed");
+      }
+    } catch (e) {
+      _showMessage("Error: $e");
+    }
+
+    setState(() => isLoading = false);
+  }
+
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F0F0F),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 40),
+
+            const Text(
+              "Create New Password",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            const Text(
+              "Enter your new password",
+              style: TextStyle(color: Colors.white70),
+            ),
+
+            const SizedBox(height: 30),
+
+            // 🔹 New Password
+            _passwordField(
+              controller: passwordController,
+              hint: "New Password",
+              visible: showPassword,
+              toggle: () => setState(() => showPassword = !showPassword),
+              onChanged: (value) {
+                setState(() {
+                  _passwordStrength = checkStrength(value);
+                });
+              },
+            ),
+
+            const SizedBox(height: 8),
+
+            // 🔹 Strength Indicator
+            Row(
+              children: [
+                Expanded(
+                  child: LinearProgressIndicator(
+                    value: _passwordStrength == PasswordStrength.weak
+                        ? 0.33
+                        : _passwordStrength == PasswordStrength.medium
+                        ? 0.66
+                        : 1.0,
+                    backgroundColor: Colors.white12,
+                    valueColor:
+                    AlwaysStoppedAnimation(strengthColor()),
+                    minHeight: 6,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  strengthText(),
+                  style: TextStyle(
+                    color: strengthColor(),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // 🔹 Confirm Password
+            _passwordField(
+              controller: confirmController,
+              hint: "Confirm Password",
+              visible: showConfirmPassword,
+              toggle: () => setState(
+                      () => showConfirmPassword = !showConfirmPassword),
+            ),
+
+            const Spacer(),
+
+            // 🔹 Reset Button
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: isLoading ||
+                    _passwordStrength != PasswordStrength.strong
+                    ? null
+                    : resetPassword,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFD400),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: isLoading
+                    ? const CircularProgressIndicator(
+                    color: Colors.black)
+                    : const Text(
+                  "Reset Password",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _passwordField({
+    required TextEditingController controller,
+    required String hint,
+    required bool visible,
+    required VoidCallback toggle,
+    ValueChanged<String>? onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1C),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: !visible,
+        onChanged: onChanged,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.white54),
+          prefixIcon:
+          const Icon(Icons.lock_outline, color: Colors.white54),
+          suffixIcon: IconButton(
+            icon: Icon(
+              visible ? Icons.visibility : Icons.visibility_off,
+              color: Colors.white54,
+            ),
+            onPressed: toggle,
+          ),
+          border: InputBorder.none,
+          contentPadding:
+          const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+        ),
+      ),
+    );
+  }
+}

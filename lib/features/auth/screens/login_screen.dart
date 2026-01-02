@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../home/home_screen.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
@@ -252,12 +253,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
               Align(
                 alignment: Alignment.centerRight,
-                child: Text(
-                  "Forgot Password?",
-                  style: TextStyle(
-                    color: const Color(0xFFD4AF37),
-                    fontSize: 13,
-                  ),
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ForgotPasswordScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text("Forgot Password?"),
                 ),
               ),
 
