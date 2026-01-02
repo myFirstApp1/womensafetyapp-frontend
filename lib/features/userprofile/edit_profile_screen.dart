@@ -202,7 +202,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (response.statusCode == 200 || response.statusCode == 204) {
         Navigator.pop(context, true);
       } else {
-        _showSnack("Failed to update profile");
+        _showSnack("Failed to update userprofile");
       }
     } catch (e) {
       setState(() => loading = false);

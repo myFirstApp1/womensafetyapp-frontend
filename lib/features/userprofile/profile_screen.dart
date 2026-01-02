@@ -107,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           loading = false;
         });
       } else {
-        _showError("Failed to load profile");
+        _showError("Failed to load userprofile");
       }
     } catch (e) {
       _showError("Something went wrong");
