@@ -43,69 +43,75 @@ class _RegisterScreenState extends State<RegisterScreen> {
     const baseUrl = "http://192.168.1.6:8080";
     final url = Uri.parse("$baseUrl/api/auth/register");
 
-    // try {
-    //   final response = await http
-    //       .post(
-    //     url,
-    //     headers: {"Content-Type": "application/json"},
-    //     body: jsonEncode({
-    //       "username": username,
-    //       "email": email,
-    //       "password": password,
-    //     }),
-    //   )
-    //       .timeout(const Duration(seconds: 10));
-    //
-    //   setState(() => loading = false);
-    //
-    //   if (response.statusCode == 200 || response.statusCode == 201) {
-    //     showSnack("Registration successful!");
-    //
-    //     Future.delayed(const Duration(seconds: 1), () {
-    //       Navigator.pushReplacement(
-    //         context,
-    //         MaterialPageRoute(builder: (_) => const LoginScreen()),
-    //       );
-    //     });
-    //   } else {
-    //     String errorMessage = "Registration failed";
-    //     try {
-    //       final data = jsonDecode(response.body);
-    //       if (data is Map && data["message"] != null) {
-    //         errorMessage = data["message"];
-    //       }
-    //     } catch (_) {}
-    //
-    //     showSnack(errorMessage);
-    //   }
-    // } catch (e) {
-    //   setState(() => loading = false);
-    //   showSnack("Something went wrong. Please try again.");
-    // }
-
     try {
-      final response = await http.post(
-        Uri.parse("$baseUrl/api/auth/register"),
+      final response = await http
+          .post(
+        url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "username": username,
           "email": email,
           "password": password,
         }),
-      );
+      )
+          .timeout(const Duration(seconds: 10));
+    
+      setState(() => loading = false);
 
       print("🟢 REGISTER STATUS: ${response.statusCode}");
       print("🟢 REGISTER BODY: ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // success
+        showSnack("Registration successful!");
+    
+        Future.delayed(const Duration(seconds: 1), () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+        });
       } else {
-        throw Exception("Register failed");
+        String errorMessage = "Registration failed";
+        try {
+          final data = jsonDecode(response.body);
+          if (data is Map && data["message"] != null) {
+            errorMessage = data["message"];
+          }
+        } catch (_) {}
+    
+        showSnack(errorMessage);
       }
+    } catch (e) {
+      setState(() => loading = false);
+      showSnack("Something went wrong. Please try again.");
     } catch (e) {
       print("🔴 REGISTER ERROR: $e");
       rethrow;
     }
+
+    // try {
+    //   final response = await http.post(
+    //     Uri.parse("$baseUrl/api/auth/register"),
+    //     headers: {"Content-Type": "application/json"},
+    //     body: jsonEncode({
+    //       "username": username,
+    //       "email": email,
+    //       "password": password,
+    //     }),
+    //   );
+
+    //   print("🟢 REGISTER STATUS: ${response.statusCode}");
+    //   print("🟢 REGISTER BODY: ${response.body}");
+
+    //   if (response.statusCode == 200 || response.statusCode == 201) {
+    //     // success
+    //   } else {
+    //     throw Exception("Register failed");
+    //   }
+    // } catch (e) {
+    //   print("🔴 REGISTER ERROR: $e");
+    //   rethrow;
+    // }
 
   }
 

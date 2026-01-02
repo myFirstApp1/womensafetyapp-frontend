@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import '../profile/profile_screen.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,12 +20,48 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingLocation = true;
 
   final Location _location = Location();
+  String userName = "User";
+  String? profileImageUrl;
+
 
   @override
   void initState() {
     super.initState();
     _initLocation();
+    _fetchUserProfile();
   }
+
+Future<void> _fetchUserProfile() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+    final userId = prefs.getString("userId");
+
+    if (token == null || userId == null) return;
+
+    final url =
+        Uri.parse("http://192.168.1.6:8082/api/users/$userId");
+
+    final response = await http.get(
+      url,
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      setState(() {
+        userName = data["name"] ?? "User";
+        profileImageUrl = data["profilePictureUrl"];
+      });
+    }
+  } catch (e) {
+    debugPrint("HOME PROFILE FETCH ERROR: $e");
+  }
+}
 
   Future<void> _initLocation() async {
     try {
@@ -81,32 +121,41 @@ class _HomeScreenState extends State<HomeScreen> {
               // 🔹 Header
               InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ProfileScreen(),
-                    ),
-                  );
-                },
+               onTap: () async {
+               final updated = await Navigator.push<bool>(
+               context,
+               MaterialPageRoute(
+               builder: (_) => const ProfileScreen(),
+               ),
+               );
+              if (updated == true) {
+              _fetchUserProfile(); // ✅ refresh Home
+              }
+               },
                 child: Row(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 24,
-                      backgroundImage: AssetImage("assets/images/avatar.png"),
+                      backgroundColor: Colors.grey.shade200,
+                      backgroundImage: profileImageUrl != null &&
+                          profileImageUrl!.isNotEmpty &&
+                          profileImageUrl!.startsWith("http")
+                          ? NetworkImage(profileImageUrl!)
+                          : const AssetImage("assets/images/avatar.png")
+                      as ImageProvider,
                     ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "Hello, Jane!",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      children: [
+                      Text(
+                        "Hello, $userName",
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Text(
+                      ),
+                        const Text(
                           "Stay Safe",
                           style: TextStyle(color: Colors.black54),
                         ),
