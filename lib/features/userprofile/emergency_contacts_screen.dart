@@ -29,27 +29,32 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     return prefs.getString("token");
   }
 
+  Future<String?> _getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("userId");
+  }
+
   Future<void> fetchContacts() async {
     setState(() => isLoading = true);
 
     final token = await _getToken();
-    if (token == null) {
+    final userId = await _getUserId();
+
+    if (token == null || userId == null) {
       setState(() => isLoading = false);
       return;
     }
 
     final response = await http.get(
-      Uri.parse("$baseUrl/api/users/contacts"),
+      Uri.parse("$baseUrl/api/users/contacts/$userId"),
       headers: {
-        "Content-Type": "application/json",
         "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
       },
     );
 
     if (response.statusCode == 200) {
-      setState(() {
-        contacts = jsonDecode(response.body);
-      });
+      contacts = jsonDecode(response.body);
     }
 
     setState(() => isLoading = false);
@@ -57,19 +62,19 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
 
   Future<void> deleteContact(String id) async {
     final token = await _getToken();
-    if (token == null) return;
+    final userId = await _getUserId();
+
+    if (token == null || userId == null) return;
 
     await http.delete(
-      Uri.parse("$baseUrl/api/users/contacts/$id"),
-      headers: {
-        "Authorization": "Bearer $token",
-      },
+      Uri.parse("$baseUrl/api/users/contacts/$userId/$id"),
+      headers: {"Authorization": "Bearer $token"},
     );
 
     await fetchContacts();
   }
 
-  void showAddContactSheet() {
+  void openAddSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -78,14 +83,12 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => AddContactSheet(
-        onAdded: () async {
-          await fetchContacts();
-        },
+        onAdded: () async => await fetchContacts(),
       ),
     );
   }
 
-  void showEditContactSheet(Map<String, dynamic> contact) {
+  void openEditSheet(Map<String, dynamic> contact) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -95,9 +98,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
       ),
       builder: (_) => AddContactSheet(
         contact: contact,
-        onAdded: () async {
-          await fetchContacts(); // ✅ async-safe
-        },
+        onAdded: () async => await fetchContacts(),
       ),
     );
   }
@@ -113,8 +114,8 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: contacts.length >= 15 ? null : showAddContactSheet,
-          )
+            onPressed: contacts.length >= 15 ? null : openAddSheet,
+          ),
         ],
       ),
       body: isLoading
@@ -148,14 +149,12 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                 IconButton(
                   icon: const Icon(Icons.edit,
                       color: Colors.amber),
-                  onPressed: () =>
-                      showEditContactSheet(c),
+                  onPressed: () => openEditSheet(c),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete,
                       color: Colors.red),
-                  onPressed: () =>
-                      deleteContact(c["id"]),
+                  onPressed: () => deleteContact(c["id"]),
                 ),
               ],
             ),
