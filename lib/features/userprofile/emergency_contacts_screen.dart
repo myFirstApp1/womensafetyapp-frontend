@@ -54,7 +54,9 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     );
 
     if (response.statusCode == 200) {
-      contacts = jsonDecode(response.body);
+      setState(() {
+        contacts = jsonDecode(response.body);
+      });
     }
 
     setState(() => isLoading = false);
@@ -105,6 +107,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool canDelete = contacts.length > 1;
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
@@ -151,10 +154,17 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                       color: Colors.amber),
                   onPressed: () => openEditSheet(c),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete,
-                      color: Colors.red),
-                  onPressed: () => deleteContact(c["id"]),
+                Tooltip(
+                  message: canDelete
+                      ? "Delete contact"
+                      : "At least one contact is required",
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.delete,
+                      color: canDelete ? Colors.red : Colors.grey,
+                    ),
+                    onPressed: canDelete ? () => deleteContact(c["id"]) : null,
+                  ),
                 ),
               ],
             ),

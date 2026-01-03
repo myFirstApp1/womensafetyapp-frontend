@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -36,10 +37,15 @@ class _AddContactSheetState extends State<AddContactSheet> {
     }
   }
 
+  bool get isFormValid {
+    return nameController.text.trim().isNotEmpty &&
+        phoneController.text.trim().length == 10 &&
+        relationController.text.trim().isNotEmpty &&
+        !isSaving;
+  }
+
   Future<void> saveContact() async {
-    if (nameController.text.isEmpty ||
-        phoneController.text.isEmpty ||
-        relationController.text.isEmpty) return;
+    if (!isFormValid) return;
 
     setState(() => isSaving = true);
 
@@ -81,7 +87,9 @@ class _AddContactSheetState extends State<AddContactSheet> {
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to save contact (${response.statusCode})")),
+        SnackBar(
+          content: Text("Failed to save contact (${response.statusCode})"),
+        ),
       );
     }
   }
@@ -122,26 +130,48 @@ class _AddContactSheetState extends State<AddContactSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            _inputField(nameController, "Name", Icons.person),
+
+            // 🔹 NAME (letters + space only)
+            _inputField(
+              nameController,
+              "Name",
+              Icons.person,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r"[a-zA-Z\s]"),
+                ),
+              ],
+            ),
+
             const SizedBox(height: 14),
+
+            // 🔹 PHONE (10 digits only)
             _inputField(
               phoneController,
               "Phone Number",
               Icons.phone,
               keyboard: TextInputType.phone,
+              maxLength: 10,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
             ),
+
             const SizedBox(height: 14),
+
             _inputField(
               relationController,
               "Relation (e.g. Brother, Mother)",
               Icons.family_restroom,
             ),
+
             const SizedBox(height: 25),
+
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: isSaving ? null : saveContact,
+                onPressed: isFormValid ? saveContact : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD4AF37),
                   shape: RoundedRectangleBorder(
@@ -170,6 +200,8 @@ class _AddContactSheetState extends State<AddContactSheet> {
       String hint,
       IconData icon, {
         TextInputType keyboard = TextInputType.text,
+        List<TextInputFormatter>? inputFormatters,
+        int? maxLength,
       }) {
     return Container(
       decoration: BoxDecoration(
@@ -179,8 +211,12 @@ class _AddContactSheetState extends State<AddContactSheet> {
       child: TextField(
         controller: controller,
         keyboardType: keyboard,
+        inputFormatters: inputFormatters,
+        maxLength: maxLength,
+        onChanged: (_) => setState(() {}),
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
+          counterText: "",
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.white54),
           prefixIcon: Icon(icon, color: Colors.white54),
