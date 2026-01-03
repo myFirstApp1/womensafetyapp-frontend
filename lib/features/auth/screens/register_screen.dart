@@ -84,35 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       setState(() => loading = false);
       showSnack("Something went wrong. Please try again.");
-    } catch (e) {
-      print("🔴 REGISTER ERROR: $e");
-      rethrow;
     }
-
-    // try {
-    //   final response = await http.post(
-    //     Uri.parse("$baseUrl/api/auth/register"),
-    //     headers: {"Content-Type": "application/json"},
-    //     body: jsonEncode({
-    //       "username": username,
-    //       "email": email,
-    //       "password": password,
-    //     }),
-    //   );
-
-    //   print("🟢 REGISTER STATUS: ${response.statusCode}");
-    //   print("🟢 REGISTER BODY: ${response.body}");
-
-    //   if (response.statusCode == 200 || response.statusCode == 201) {
-    //     // success
-    //   } else {
-    //     throw Exception("Register failed");
-    //   }
-    // } catch (e) {
-    //   print("🔴 REGISTER ERROR: $e");
-    //   rethrow;
-    // }
-
   }
 
   void showSnack(String msg) {

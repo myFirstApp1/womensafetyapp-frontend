@@ -6,7 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../userprofile/emergency_contacts_screen.dart';
 import '../userprofile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -130,7 +130,7 @@ Future<void> _fetchUserProfile() async {
                ),
                );
               if (updated == true) {
-              _fetchUserProfile(); // ✅ refresh Home
+              _fetchUserProfile(); // refresh Home
               }
                },
                 child: Row(
@@ -253,22 +253,30 @@ Future<void> _fetchUserProfile() async {
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                children: const [
-                  _ActionCard(
+                children: [
+                  const _ActionCard(
                     icon: Icons.notifications_active,
                     label: "Pre-Alert",
                   ),
-                  _ActionCard(
+                  const _ActionCard(
                     icon: Icons.my_location,
                     label: "Share Location",
                   ),
-                  _ActionCard(
+                  const _ActionCard(
                     icon: Icons.call,
                     label: "Fake Call",
                   ),
                   _ActionCard(
                     icon: Icons.group,
                     label: "Contacts",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EmergencyContactsScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -333,34 +341,42 @@ Future<void> _fetchUserProfile() async {
   }
 }
 
+
+
 // ---------------- Action Card Widget ----------------
 
 class _ActionCard extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback? onTap; // ✅ added
 
   const _ActionCard({
     required this.icon,
     required this.label,
+    this.onTap, // ✅ added
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 32, color: const Color(0xFFD4AF37)),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ],
+    return InkWell( // ✅ wrap with InkWell
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: const Color(0xFFD4AF37)),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
       ),
     );
   }

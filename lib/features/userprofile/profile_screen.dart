@@ -241,12 +241,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               height: 45,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: Colors.white,
                 ),
                 onPressed: () => showLogoutDialog(context),
                 child: const Text(
                   "Logout",
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.red),
                 ),
               ),
             ),
