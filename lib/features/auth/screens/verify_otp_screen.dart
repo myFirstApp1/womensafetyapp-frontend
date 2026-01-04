@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 class VerifyOtpScreen extends StatefulWidget {
   final String email;
@@ -20,6 +22,11 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
   int secondsRemaining = 192; // 03:12
   Timer? _timer;
+  bool isVerifying = false;
+  bool isResending = false;
+
+  final String baseUrl = "http://192.168.1.6:8080"; // auth-service
+
 
   @override
   void initState() {
@@ -36,6 +43,75 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         setState(() => secondsRemaining--);
       }
     });
+  }
+
+  Future<void> verifyOtp() async {
+    if (!isOtpComplete) return;
+
+    setState(() => isVerifying = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/auth/verify-otp"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": widget.email,
+          "otp": otp,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Email verified successfully")),
+        );
+
+        // 👉 Navigate next (Login / Reset Password / Home)
+        // Navigator.pushReplacement(...);
+
+      } else {
+        final msg = jsonDecode(response.body)["message"] ?? "Invalid OTP";
+        _showError(msg);
+      }
+    } catch (e) {
+      _showError("Something went wrong. Try again.");
+    }
+
+    setState(() => isVerifying = false);
+  }
+
+  Future<void> resendOtp() async {
+    setState(() => isResending = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/auth/resend-otp"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": widget.email,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() => secondsRemaining = 192);
+        startTimer();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("OTP resent successfully")),
+        );
+      } else {
+        _showError("Failed to resend OTP");
+      }
+    } catch (e) {
+      _showError("Network error");
+    }
+
+    setState(() => isResending = false);
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 
   String get formattedTime {
@@ -124,7 +200,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: isOtpComplete ? () {} : null,
+                onPressed: isOtpComplete && !isVerifying ? verifyOtp : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD4AF37),
                   disabledBackgroundColor:
@@ -133,13 +209,9 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text(
-                  "Confirm Code",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: isVerifying
+                    ? const CircularProgressIndicator(color: Colors.black)
+                    : const Text("Confirm Code"),
               ),
             ),
 
@@ -150,20 +222,16 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
               width: double.infinity,
               height: 48,
               child: OutlinedButton(
-                onPressed: secondsRemaining == 0 ? () {
-                  setState(() => secondsRemaining = 192);
-                  startTimer();
-                } : null,
+                onPressed: secondsRemaining == 0 && !isResending ? resendOtp : null,
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.white54),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text(
-                  "Resend Code",
-                  style: TextStyle(color: Colors.white),
-                ),
+                child: isResending
+                    ? const CircularProgressIndicator()
+                    : const Text("Resend Code"),
               ),
             ),
           ],
