@@ -4,10 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
+import 'login_screen.dart';
+
 class VerifyOtpScreen extends StatefulWidget {
   final String email;
+  final String txnId;
 
-  const VerifyOtpScreen({super.key, required this.email});
+  const VerifyOtpScreen({
+    super.key,
+    required this.email,
+    required this.txnId,
+  });
 
   @override
   State<VerifyOtpScreen> createState() => _VerifyOtpScreenState();
@@ -25,8 +32,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   bool isVerifying = false;
   bool isResending = false;
 
-  final String baseUrl = "http://192.168.1.6:8080"; // auth-service
-
+  final String baseUrl = "http://192.168.1.6:8080";
 
   @override
   void initState() {
@@ -52,24 +58,35 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/api/auth/verify-otp"),
+        Uri.parse("$baseUrl/api/auth/otp/verify"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "email": widget.email,
-          "otp": otp,
+          "txnId": widget.txnId,
+          "code": otp, // ✅ FIXED (was otp)
         }),
       );
 
-      if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      final innerStatus = decoded["data"]?["status"];
+
+      print("OTP VERIFY RESPONSE => ${response.body}");
+
+      if (response.statusCode == 200 && innerStatus == "SUCCESS") {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Email verified successfully")),
         );
 
-        // 👉 Navigate next (Login / Reset Password / Home)
-        // Navigator.pushReplacement(...);
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (!mounted) return;
 
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+        );
       } else {
-        final msg = jsonDecode(response.body)["message"] ?? "Invalid OTP";
+        final msg =
+            decoded["data"]?["message"] ?? "Invalid OTP";
         _showError(msg);
       }
     } catch (e) {
@@ -109,9 +126,8 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
   }
 
   String get formattedTime {
@@ -120,8 +136,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     return "${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}";
   }
 
-  String get otp =>
-      _controllers.map((c) => c.text).join();
+  String get otp => _controllers.map((c) => c.text).join();
 
   bool get isOtpComplete => otp.length == 6;
 
@@ -175,12 +190,9 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
             const SizedBox(height: 30),
 
-            // 🔹 OTP BOXES
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(6, (i) {
-                return _otpBox(i);
-              }),
+              children: List.generate(6, (i) => _otpBox(i)),
             ),
 
             const SizedBox(height: 20),
@@ -195,12 +207,12 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
             const SizedBox(height: 40),
 
-            // 🔹 CONFIRM BUTTON
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: isOtpComplete && !isVerifying ? verifyOtp : null,
+                onPressed:
+                isOtpComplete && !isVerifying ? verifyOtp : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD4AF37),
                   disabledBackgroundColor:
@@ -210,21 +222,24 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                   ),
                 ),
                 child: isVerifying
-                    ? const CircularProgressIndicator(color: Colors.black)
+                    ? const CircularProgressIndicator(
+                    color: Colors.black)
                     : const Text("Confirm Code"),
               ),
             ),
 
             const SizedBox(height: 14),
 
-            // 🔹 RESEND
             SizedBox(
               width: double.infinity,
               height: 48,
               child: OutlinedButton(
-                onPressed: secondsRemaining == 0 && !isResending ? resendOtp : null,
+                onPressed:
+                secondsRemaining == 0 && !isResending
+                    ? resendOtp
+                    : null,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white54),
+                  side: const BorderSide(color: Colors.white),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
@@ -240,7 +255,6 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     );
   }
 
-  // 🔹 OTP BOX WIDGET
   Widget _otpBox(int index) {
     return SizedBox(
       width: 48,

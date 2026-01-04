@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'login_screen.dart';
+import 'verify_otp_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -55,21 +57,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }),
       )
           .timeout(const Duration(seconds: 10));
-    
+
       setState(() => loading = false);
 
       print("🟢 REGISTER STATUS: ${response.statusCode}");
       print("🟢 REGISTER BODY: ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        showSnack("Registration successful!");
-    
-        Future.delayed(const Duration(seconds: 1), () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-          );
-        });
+        final decoded = jsonDecode(response.body);
+
+        // ✅ FIX: extract txnId correctly
+        final txnId = decoded["data"]?["data"]?["txnId"];
+
+        if (txnId == null || txnId.toString().isEmpty) {
+          showSnack("OTP transaction id missing. Please try again.");
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+            Text("Registration successful. Please verify your email."),
+          ),
+        );
+
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!mounted) return;
+
+        // ✅ FIX: go to Verify OTP screen (not login)
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VerifyOtpScreen(
+              email: email,
+              txnId: txnId,
+            ),
+          ),
+        );
       } else {
         String errorMessage = "Registration failed";
         try {
@@ -78,7 +102,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             errorMessage = data["message"];
           }
         } catch (_) {}
-    
+
         showSnack(errorMessage);
       }
     } catch (e) {
@@ -105,7 +129,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               const SizedBox(height: 20),
 
-              // Title
               const Text(
                 "AuraGuard",
                 textAlign: TextAlign.center,
@@ -123,11 +146,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               const SizedBox(height: 24),
 
-              // Login | Sign Up Toggle
               Container(
                 height: 50,
                 decoration: BoxDecoration(
-                  color: Colors.black12.withValues(alpha: 0.05),
+                  color: Colors.black12.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -138,7 +160,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => const LoginScreen()),
+                              builder: (_) => const LoginScreen(),
+                            ),
                           );
                         },
                         child: const Center(
@@ -209,7 +232,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               const SizedBox(height: 24),
 
-              // Sign Up Button
               SizedBox(
                 height: 52,
                 child: ElevatedButton(
@@ -259,8 +281,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-
-  // ----------------- UI helpers -----------------
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
