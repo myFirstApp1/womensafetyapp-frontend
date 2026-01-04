@@ -62,38 +62,35 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "txnId": widget.txnId,
-          "code": otp, // ✅ FIXED (was otp)
+          "code": otp, // backend expects "code"
         }),
       );
 
-      final decoded = jsonDecode(response.body);
-      final innerStatus = decoded["data"]?["status"];
-
       print("OTP VERIFY RESPONSE => ${response.body}");
 
-      if (response.statusCode == 200 && innerStatus == "SUCCESS") {
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Email verified successfully")),
         );
 
-        await Future.delayed(const Duration(milliseconds: 800));
-        if (!mounted) return;
-
-        Navigator.pushAndRemoveUntil(
-          context,
+        // 🔥 THIS IS THE KEY LINE
+        Navigator.of(context, rootNavigator: true).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
-              (route) => false,
         );
       } else {
-        final msg =
-            decoded["data"]?["message"] ?? "Invalid OTP";
+        final decoded = jsonDecode(response.body);
+        final msg = decoded["message"] ?? "Invalid OTP";
         _showError(msg);
       }
     } catch (e) {
       _showError("Something went wrong. Try again.");
+    } finally {
+      if (mounted) {
+        setState(() => isVerifying = false);
+      }
     }
-
-    setState(() => isVerifying = false);
   }
 
   Future<void> resendOtp() async {
