@@ -61,8 +61,9 @@ class _AddContactSheetState extends State<AddContactSheet> {
     final isEdit = widget.contact != null;
 
     final url = isEdit
-        ? "$baseUrl/api/users/contacts/$userId/${widget.contact!["id"]}"
+        ? "$baseUrl/api/users/contacts/${widget.contact!["id"]}"
         : "$baseUrl/api/users/contacts/$userId";
+
 
     final method = isEdit ? http.put : http.post;
 

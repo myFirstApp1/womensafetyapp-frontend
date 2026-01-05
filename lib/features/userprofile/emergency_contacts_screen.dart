@@ -11,12 +11,20 @@ class EmergencyContactsScreen extends StatefulWidget {
   @override
   State<EmergencyContactsScreen> createState() =>
       _EmergencyContactsScreenState();
+
 }
 
 class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   final String baseUrl = "http://192.168.1.6:8082";
   List contacts = [];
   bool isLoading = true;
+
+  void _showSnack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+  }
 
   @override
   void initState() {
@@ -62,19 +70,31 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     setState(() => isLoading = false);
   }
 
-  Future<void> deleteContact(String id) async {
-    final token = await _getToken();
-    final userId = await _getUserId();
+  Future<void> deleteContact(String contactId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+    final userId = prefs.getString("userId");
 
-    if (token == null || userId == null) return;
+    if (token == null || userId == null) {
+      _showSnack("Failed to delete contact");
+      return;
+    }
 
-    await http.delete(
-      Uri.parse("$baseUrl/api/users/contacts/$userId/$id"),
-      headers: {"Authorization": "Bearer $token"},
+    final response = await http.delete(
+      Uri.parse("$baseUrl/api/users/contacts/$userId/$contactId"),
+      headers: {
+        "Authorization": "Bearer $token",
+      },
     );
 
-    await fetchContacts();
+    if (response.statusCode == 204 || response.statusCode == 200) {
+      await fetchContacts(); // ✅ refresh list
+    } else {
+      print("DELETE FAILED → ${response.statusCode} ${response.body}");
+      _showSnack("Failed to delete contact");
+    }
   }
+
 
   void openAddSheet() {
     showModalBottomSheet(
@@ -107,7 +127,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool canDelete = contacts.length > 1;
+    final canDelete = contacts.length > 1;
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
@@ -161,9 +181,17 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                   child: IconButton(
                     icon: Icon(
                       Icons.delete,
-                      color: canDelete ? Colors.red : Colors.grey,
+                      color: contacts.length > 1 ? Colors.red : Colors.grey,
                     ),
-                    onPressed: canDelete ? () => deleteContact(c["id"]) : null,
+                    onPressed: contacts.length > 1
+                        ? () => deleteContact(c["id"].toString())
+                        : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("At least one contact is required"),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
