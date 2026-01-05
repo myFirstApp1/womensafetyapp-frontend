@@ -51,6 +51,8 @@ Future<void> _fetchUserProfile() async {
       },
     );
 
+    print("🏠 Home loaded for userId: ${prefs.getString("userId")}");
+
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
@@ -62,6 +64,7 @@ Future<void> _fetchUserProfile() async {
   } catch (e) {
     debugPrint("HOME PROFILE FETCH ERROR: $e");
   }
+
 }
 
   Future<void> _initLocation() async {

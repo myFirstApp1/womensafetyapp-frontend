@@ -108,11 +108,18 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
   }
+
   Future<void> handleLoginSuccess({
     required String token,
     required String userId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+
+    // 🔥 ALWAYS clear first (even same account)
+    await prefs.clear();
+
+    // Optional but recommended
+    await prefs.setBool("isLoggedIn", true);
 
     // Decode JWT
     Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
@@ -120,12 +127,15 @@ class _LoginScreenState extends State<LoginScreen> {
     // Extract email (sub)
     String email = decodedToken['sub'];
 
-    // Store values
-    await prefs.setString('token', token);
-    await prefs.setString('userId', userId);
-    await prefs.setString('email', email);
+    // 🔥 Store latest values
+    await prefs.setString("token", token);
+    await prefs.setString("userId", userId);
+    await prefs.setString("email", email);
 
     debugPrint("Stored Email: $email");
+    print("✅ Stored userId: ${prefs.getString("userId")}");
+    print("✅ Stored email : ${prefs.getString("email")}");
+
   }
 
   // 🔵 UI STARTS HERE

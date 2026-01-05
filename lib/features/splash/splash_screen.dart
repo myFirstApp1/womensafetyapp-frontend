@@ -19,34 +19,6 @@ class _SplashScreenState extends State<SplashScreen> {
     _navigateNext();
   }
 
-  // Future<void> _navigateNext() async {
-  //   // Small delay just to show logo smoothly (optional)
-  //   await Future.delayed(const Duration(milliseconds: 500));
-  //
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final onboardingDone = prefs.getBool("onboarding_done") ?? false;
-  //   final token = prefs.getString("token");
-  //
-  //   if (!mounted) return;
-  //
-  //   if (!onboardingDone) {
-  //     Navigator.pushReplacement(
-  //       context,
-  //       MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-  //     );
-  //   } else if (token != null && token.isNotEmpty) {
-  //     Navigator.pushReplacement(
-  //       context,
-  //       MaterialPageRoute(builder: (_) => const HomeScreen()),
-  //     );
-  //   } else {
-  //     Navigator.pushReplacement(
-  //       context,
-  //       MaterialPageRoute(builder: (_) => const LoginScreen()),
-  //     );
-  //   }
-  // }
-
   Future<void> _navigateNext() async {
     await Future.delayed(const Duration(seconds: 2));
 
@@ -56,22 +28,29 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
+    //  1. Onboarding not done
     if (!isOnboardingDone) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const OnboardingScreen()),
       );
-    } else if (token == null || token.isEmpty) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    } else {
+      return;
+    }
+
+    //  2. Logged in
+    if (token != null && token.isNotEmpty) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
+      return;
     }
+
+    //  3. Not logged in
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
   }
 
   @override
@@ -81,7 +60,7 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Center(
         child: Image.asset(
           "assets/images/logo/logo.png",
-          width: 220, // balanced size
+          width: 220,
           fit: BoxFit.contain,
         ),
       ),
