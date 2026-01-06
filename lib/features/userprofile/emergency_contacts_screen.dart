@@ -11,7 +11,6 @@ class EmergencyContactsScreen extends StatefulWidget {
   @override
   State<EmergencyContactsScreen> createState() =>
       _EmergencyContactsScreenState();
-
 }
 
 class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
@@ -19,17 +18,11 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   List contacts = [];
   bool isLoading = true;
 
+  // ---------- helpers ----------
   void _showSnack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    fetchContacts();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Future<String?> _getToken() async {
@@ -42,6 +35,14 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     return prefs.getString("userId");
   }
 
+  // ---------- lifecycle ----------
+  @override
+  void initState() {
+    super.initState();
+    fetchContacts();
+  }
+
+  // ---------- API ----------
   Future<void> fetchContacts() async {
     setState(() => isLoading = true);
 
@@ -71,31 +72,55 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   }
 
   Future<void> deleteContact(String contactId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString("token");
-    final userId = prefs.getString("userId");
+    final token = await _getToken();
+    final userId = await _getUserId();
 
     if (token == null || userId == null) {
-      _showSnack("Failed to delete contact");
+      _showSnack("Session expired. Please login again.");
       return;
     }
 
     final response = await http.delete(
       Uri.parse("$baseUrl/api/users/contacts/$userId/$contactId"),
-      headers: {
-        "Authorization": "Bearer $token",
-      },
+      headers: {"Authorization": "Bearer $token"},
     );
 
     if (response.statusCode == 204 || response.statusCode == 200) {
-      await fetchContacts(); // ✅ refresh list
+      await fetchContacts();
     } else {
       print("DELETE FAILED → ${response.statusCode} ${response.body}");
       _showSnack("Failed to delete contact");
     }
   }
 
+  // ---------- dialogs ----------
+  void _confirmDelete(String contactId) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Contact"),
+        content: const Text(
+          "At least one emergency contact is required.\nAre you sure you want to delete?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Navigator.pop(context);
+              deleteContact(contactId);
+            },
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+  }
 
+  // ---------- bottom sheets ----------
   void openAddSheet() {
     showModalBottomSheet(
       context: context,
@@ -105,7 +130,9 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => AddContactSheet(
-        onAdded: () async => await fetchContacts(),
+        existingNumbers:
+        contacts.map<String>((c) => c["phoneNumber"] as String).toList(),
+        onAdded: fetchContacts,
       ),
     );
   }
@@ -119,15 +146,19 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => AddContactSheet(
-        contact: contact,
-        onAdded: () async => await fetchContacts(),
+        contact: contact, // ✅ FIXED (important)
+        existingNumbers:
+        contacts.map<String>((c) => c["phoneNumber"] as String).toList(),
+        onAdded: fetchContacts,
       ),
     );
   }
 
+  // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
     final canDelete = contacts.length > 1;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
@@ -159,12 +190,12 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
             const Icon(Icons.person, color: Colors.white),
             title: Text(
               c["name"],
-              style: const TextStyle(color: Colors.white),
+              style:
+              const TextStyle(color: Colors.white),
             ),
             subtitle: Text(
               "${c["relation"]} • ${c["phoneNumber"]}",
-              style:
-              const TextStyle(color: Colors.white70),
+              style: const TextStyle(color: Colors.white70),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -181,17 +212,15 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                   child: IconButton(
                     icon: Icon(
                       Icons.delete,
-                      color: contacts.length > 1 ? Colors.red : Colors.grey,
+                      color: canDelete
+                          ? Colors.red
+                          : Colors.grey,
                     ),
-                    onPressed: contacts.length > 1
-                        ? () => deleteContact(c["id"].toString())
-                        : () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("At least one contact is required"),
-                        ),
-                      );
-                    },
+                    onPressed: canDelete
+                        ? () => _confirmDelete(
+                        c["id"].toString())
+                        : () => _showSnack(
+                        "At least one contact is required"),
                   ),
                 ),
               ],

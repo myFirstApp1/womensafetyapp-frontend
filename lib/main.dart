@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       title: 'Women Safety App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.pinkAccent),
         useMaterial3: true,
       ),
       home: const SplashScreen(),

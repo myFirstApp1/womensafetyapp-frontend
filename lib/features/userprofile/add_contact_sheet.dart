@@ -7,10 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AddContactSheet extends StatefulWidget {
   final Future<void> Function() onAdded;
   final Map<String, dynamic>? contact; // edit mode
+  final List<String> existingNumbers;
 
   const AddContactSheet({
     super.key,
     required this.onAdded,
+    required this.existingNumbers,
     this.contact,
   });
 
@@ -32,9 +34,20 @@ class _AddContactSheetState extends State<AddContactSheet> {
 
     if (widget.contact != null) {
       nameController.text = widget.contact!["name"] ?? "";
-      phoneController.text = widget.contact!["phoneNumber"] ?? "";
       relationController.text = widget.contact!["relation"] ?? "";
+
+      // 🔹 remove +91 when prefilling
+      final phone = widget.contact!["phoneNumber"] ?? "";
+      phoneController.text = phone.replaceFirst("+91", "");
     }
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    relationController.dispose();
+    super.dispose();
   }
 
   bool get isFormValid {
@@ -45,7 +58,23 @@ class _AddContactSheetState extends State<AddContactSheet> {
   }
 
   Future<void> saveContact() async {
-    if (!isFormValid) return;
+    if (!isFormValid || isSaving) return;
+
+    final formattedPhone = "+91${phoneController.text.trim()}";
+
+    // ✅ DUPLICATE CHECK (before API)
+    final isDuplicate = widget.existingNumbers.any(
+          (p) =>
+      p == formattedPhone &&
+          p != widget.contact?["phoneNumber"], // allow same number in edit
+    );
+
+    if (isDuplicate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("This phone number already exists")),
+      );
+      return;
+    }
 
     setState(() => isSaving = true);
 
@@ -55,6 +84,9 @@ class _AddContactSheetState extends State<AddContactSheet> {
 
     if (token == null || userId == null) {
       setState(() => isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Session expired. Please login again.")),
+      );
       return;
     }
 
@@ -63,7 +95,6 @@ class _AddContactSheetState extends State<AddContactSheet> {
     final url = isEdit
         ? "$baseUrl/api/users/contacts/${widget.contact!["id"]}"
         : "$baseUrl/api/users/contacts/$userId";
-
 
     final method = isEdit ? http.put : http.post;
 
@@ -75,7 +106,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
       },
       body: jsonEncode({
         "name": nameController.text.trim(),
-        "phoneNumber": phoneController.text.trim(),
+        "phoneNumber": formattedPhone, // ✅ enforced +91
         "relation": relationController.text.trim(),
       }),
     );
@@ -83,13 +114,18 @@ class _AddContactSheetState extends State<AddContactSheet> {
     setState(() => isSaving = false);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      await widget.onAdded();
       if (!mounted) return;
+
+      // ✅ CLOSE bottom sheet FIRST
       Navigator.pop(context);
+
+      // ✅ THEN refresh parent list
+      await widget.onAdded();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Failed to save contact (${response.statusCode})"),
+          content:
+          Text("Failed to save contact (${response.statusCode})"),
         ),
       );
     }
@@ -120,6 +156,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
               ),
             ),
             const SizedBox(height: 20),
+
             Text(
               widget.contact == null
                   ? "Add Emergency Contact"
@@ -130,9 +167,9 @@ class _AddContactSheetState extends State<AddContactSheet> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+
             const SizedBox(height: 20),
 
-            // 🔹 NAME (letters + space only)
             _inputField(
               nameController,
               "Name",
@@ -146,7 +183,6 @@ class _AddContactSheetState extends State<AddContactSheet> {
 
             const SizedBox(height: 14),
 
-            // 🔹 PHONE (10 digits only)
             _inputField(
               phoneController,
               "Phone Number",
