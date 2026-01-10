@@ -32,7 +32,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   bool isVerifying = false;
   bool isResending = false;
 
-  final String baseUrl = "http://192.168.1.6:8080";
+  final String baseUrl = "http://10.218.102.76:8080";//"http://192.168.1.6:8080";
 
   @override
   void initState() {

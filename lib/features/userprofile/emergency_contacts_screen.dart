@@ -14,7 +14,7 @@ class EmergencyContactsScreen extends StatefulWidget {
 }
 
 class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
-  final String baseUrl = "http://192.168.1.6:8082";
+  final String baseUrl = "http://10.218.102.76:8082";//"http://192.168.1.6:8082";
   List contacts = [];
   bool isLoading = true;
 
@@ -134,7 +134,10 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         contacts.map<String>((c) => c["phoneNumber"] as String).toList(),
         onAdded: fetchContacts,
       ),
-    );
+    ).then((_) {
+      // FORCE refresh after sheet closes
+      fetchContacts();
+    });
   }
 
   void openEditSheet(Map<String, dynamic> contact) {
@@ -146,12 +149,15 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => AddContactSheet(
-        contact: contact, // ✅ FIXED (important)
+        contact: contact,
         existingNumbers:
         contacts.map<String>((c) => c["phoneNumber"] as String).toList(),
         onAdded: fetchContacts,
       ),
-    );
+    ).then((_) {
+      // THIS is what you were missing
+      fetchContacts();
+    });
   }
 
   // ---------- UI ----------

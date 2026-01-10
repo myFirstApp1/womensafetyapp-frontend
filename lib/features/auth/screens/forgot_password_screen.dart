@@ -14,7 +14,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController emailController = TextEditingController();
   bool isLoading = false;
 
-  final String baseUrl = "http://192.168.1.6:8080";
+  final String baseUrl = "http://10.218.102.76:8080";//"http://192.168.1.6:8080"
 
   bool canResend = false;
   int secondsRemaining = 60;

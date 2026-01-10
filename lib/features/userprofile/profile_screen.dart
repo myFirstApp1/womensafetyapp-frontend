@@ -77,7 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       final url =
-      Uri.parse("http://192.168.1.6:8082/api/users/$userId");
+      Uri.parse("http://10.218.102.76:8082/api/users/$userId"); //http://192.168.1.6:8082/api/users/$userI
 
       final response = await http.get(
         url,

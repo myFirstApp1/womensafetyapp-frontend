@@ -26,7 +26,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
   final relationController = TextEditingController();
 
   bool isSaving = false;
-  final String baseUrl = "http://192.168.1.6:8082";
+  final String baseUrl = "http://10.218.102.76:8082";//"http://192.168.1.6:8082";
 
   @override
   void initState() {
@@ -62,11 +62,11 @@ class _AddContactSheetState extends State<AddContactSheet> {
 
     final formattedPhone = "+91${phoneController.text.trim()}";
 
-    // ✅ DUPLICATE CHECK (before API)
+    // DUPLICATE CHECK
     final isDuplicate = widget.existingNumbers.any(
           (p) =>
       p == formattedPhone &&
-          p != widget.contact?["phoneNumber"], // allow same number in edit
+          p != widget.contact?["phoneNumber"],
     );
 
     if (isDuplicate) {
@@ -78,58 +78,65 @@ class _AddContactSheetState extends State<AddContactSheet> {
 
     setState(() => isSaving = true);
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString("token");
-    final userId = prefs.getString("userId");
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("token");
+      final userId = prefs.getString("userId");
 
-    if (token == null || userId == null) {
-      setState(() => isSaving = false);
+      if (token == null || userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Session expired. Please login again.")),
+        );
+        return;
+      }
+
+      final isEdit = widget.contact != null;
+
+      final url = isEdit
+          ? "$baseUrl/api/users/contacts/${widget.contact!["id"]}"
+          : "$baseUrl/api/users/contacts/$userId";
+
+      final method = isEdit ? http.put : http.post;
+
+      final response = await method(
+        Uri.parse(url),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "name": nameController.text.trim(),
+          "phoneNumber": formattedPhone,
+          "relation": relationController.text.trim(),
+        }),
+      ).timeout(const Duration(seconds: 10)); // ✅ CRITICAL FIX
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (!mounted) return;
+
+        Navigator.pop(context); // ✅ CLOSE SHEET
+        await widget.onAdded(); // ✅ REFRESH LIST
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+            Text("Failed to save contact (${response.statusCode})"),
+          ),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Session expired. Please login again.")),
-      );
-      return;
-    }
-
-    final isEdit = widget.contact != null;
-
-    final url = isEdit
-        ? "$baseUrl/api/users/contacts/${widget.contact!["id"]}"
-        : "$baseUrl/api/users/contacts/$userId";
-
-    final method = isEdit ? http.put : http.post;
-
-    final response = await method(
-      Uri.parse(url),
-      headers: {
-        "Authorization": "Bearer $token",
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({
-        "name": nameController.text.trim(),
-        "phoneNumber": formattedPhone, // ✅ enforced +91
-        "relation": relationController.text.trim(),
-      }),
-    );
-
-    setState(() => isSaving = false);
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      if (!mounted) return;
-
-      // ✅ CLOSE bottom sheet FIRST
-      Navigator.pop(context);
-
-      // ✅ THEN refresh parent list
-      await widget.onAdded();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-          Text("Failed to save contact (${response.statusCode})"),
+        const SnackBar(
+          content: Text("Unable to connect to server"),
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() => isSaving = false); // ✅ ALWAYS RESET
+      }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
