@@ -110,10 +110,11 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/api/auth/resend-otp"),
+        Uri.parse("$baseUrl/api/auth/otp/resend"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": widget.email,
+          "channel": "EMAIL", // ✅ FIX 1
         }),
       );
 
@@ -122,8 +123,8 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
 
-        // ✅ IMPORTANT: update txnId
-        final newTxnId = decoded["data"]?["txnId"];
+        // ✅ FIX 2: correct txnId path
+        final newTxnId = decoded["data"]?["data"]?["txnId"];
         if (newTxnId != null && newTxnId.toString().isNotEmpty) {
           txnId = newTxnId;
         }
@@ -137,7 +138,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
       } else {
         _showError("Failed to resend OTP");
       }
-    } catch (e) {
+    } catch (_) {
       _showError("Network error");
     } finally {
       if (mounted) {
@@ -145,6 +146,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
       }
     }
   }
+
 
   // ---------------- HELPERS ----------------
   void _showError(String msg) {
