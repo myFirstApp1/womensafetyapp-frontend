@@ -27,7 +27,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   final List<FocusNode> _focusNodes =
   List.generate(6, (_) => FocusNode());
 
-  int secondsRemaining = 192; // 03:12
+  int secondsRemaining = 240; // 04:00
   Timer? _timer;
 
   bool isVerifying = false;

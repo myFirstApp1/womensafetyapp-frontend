@@ -66,35 +66,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = jsonDecode(response.body);
 
-        // ✅ FIX: extract txnId correctly
-        final txnId = decoded["data"]?["data"]?["txnId"];
+// ✅ CORRECT extraction (3-level deep)
+        final txnId =
+        decoded["data"]?["data"]?["txnId"];
 
-        if (txnId == null || txnId.toString().isEmpty) {
+        final emailMessage =
+        decoded["data"]?["data"]?["message"];
+
+        if (txnId == null || txnId
+            .toString()
+            .isEmpty) {
+          print("❌ Full register response: $decoded");
           showSnack("OTP transaction id missing. Please try again.");
           return;
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-            Text("Registration successful. Please verify your email."),
+          SnackBar(
+            content: Text(emailMessage ?? "Please verify OTP"),
           ),
         );
 
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 400));
         if (!mounted) return;
 
-        // ✅ FIX: go to Verify OTP screen (not login)
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => VerifyOtpScreen(
-              email: email,
-              txnId: txnId,
-            ),
+            builder: (_) =>
+                VerifyOtpScreen(
+                  email: email,
+                  txnId: txnId,
+                ),
           ),
         );
-      } else {
+      }
+      else {
         String errorMessage = "Registration failed";
         try {
           final data = jsonDecode(response.body);
