@@ -29,14 +29,18 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
   int secondsRemaining = 192; // 03:12
   Timer? _timer;
+
   bool isVerifying = false;
   bool isResending = false;
 
-  final String baseUrl = "http://10.218.102.76:8080";//"http://192.168.1.6:8080";
+  final String baseUrl = "http://10.218.102.76:8080";
+
+  late String txnId; // mutable txnId
 
   @override
   void initState() {
     super.initState();
+    txnId = widget.txnId;
     startTimer();
   }
 
@@ -51,8 +55,9 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     });
   }
 
+  // ---------------- VERIFY OTP ----------------
   Future<void> verifyOtp() async {
-    if (!isOtpComplete) return;
+    if (!isOtpComplete || isVerifying) return;
 
     setState(() => isVerifying = true);
 
@@ -61,8 +66,8 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         Uri.parse("$baseUrl/api/auth/otp/verify"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "txnId": widget.txnId,
-          "code": otp, // backend expects "code"
+          "txnId": txnId,
+          "code": otp,
         }),
       );
 
@@ -75,13 +80,17 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
           const SnackBar(content: Text("Email verified successfully")),
         );
 
-        // 🔥 THIS IS THE KEY LINE
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        if (!mounted) return;
+
         Navigator.of(context, rootNavigator: true).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       } else {
         final decoded = jsonDecode(response.body);
-        final msg = decoded["message"] ?? "Invalid OTP";
+        final msg =
+            decoded["data"]?["message"] ?? "Invalid OTP";
         _showError(msg);
       }
     } catch (e) {
@@ -93,7 +102,10 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     }
   }
 
+  // ---------------- RESEND OTP ----------------
   Future<void> resendOtp() async {
+    if (isResending) return;
+
     setState(() => isResending = true);
 
     try {
@@ -105,7 +117,17 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         }),
       );
 
+      print("RESEND OTP RESPONSE => ${response.body}");
+
       if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+
+        // ✅ IMPORTANT: update txnId
+        final newTxnId = decoded["data"]?["txnId"];
+        if (newTxnId != null && newTxnId.toString().isNotEmpty) {
+          txnId = newTxnId;
+        }
+
         setState(() => secondsRemaining = 192);
         startTimer();
 
@@ -117,12 +139,16 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
       }
     } catch (e) {
       _showError("Network error");
+    } finally {
+      if (mounted) {
+        setState(() => isResending = false);
+      }
     }
-
-    setState(() => isResending = false);
   }
 
+  // ---------------- HELPERS ----------------
   void _showError(String msg) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
   }
@@ -134,21 +160,21 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   }
 
   String get otp => _controllers.map((c) => c.text).join();
-
   bool get isOtpComplete => otp.length == 6;
 
   @override
   void dispose() {
     _timer?.cancel();
-    for (var c in _controllers) {
+    for (final c in _controllers) {
       c.dispose();
     }
-    for (var f in _focusNodes) {
+    for (final f in _focusNodes) {
       f.dispose();
     }
     super.dispose();
   }
 
+  // ---------------- UI ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -161,7 +187,6 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
 
@@ -179,27 +204,21 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
             Text(
               "Enter the 6-digit code sent to\n${widget.email}",
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.white70),
             ),
 
             const SizedBox(height: 30),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(6, (i) => _otpBox(i)),
+              children: List.generate(6, _otpBox),
             ),
 
             const SizedBox(height: 20),
 
             Text(
               "Code expires in : $formattedTime",
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: Colors.white70),
             ),
 
             const SizedBox(height: 40),
@@ -212,15 +231,12 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                 isOtpComplete && !isVerifying ? verifyOtp : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD4AF37),
-                  disabledBackgroundColor:
-                  const Color(0xFFD4AF37).withOpacity(0.4),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
                 child: isVerifying
-                    ? const CircularProgressIndicator(
-                    color: Colors.black)
+                    ? const CircularProgressIndicator(color: Colors.black)
                     : const Text("Confirm Code"),
               ),
             ),
@@ -259,12 +275,10 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
       child: TextField(
         controller: _controllers[index],
         focusNode: _focusNodes[index],
+        maxLength: 1,
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
-        maxLength: 1,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-        ],
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         style: const TextStyle(
           color: Colors.white,
           fontSize: 18,
