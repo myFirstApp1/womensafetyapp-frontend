@@ -204,27 +204,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // 🔹 SOS
               Center(
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.red,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.red.withOpacity(0.4),
-                        blurRadius: 30,
-                        spreadRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Text(
-                      "SOS",
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                child: GestureDetector(
+                  onTap: () {
+                    // 1️⃣ Navigate immediately
+                    Navigator.pushNamed(context, '/sos-active');
+
+                    // 2️⃣ Event hook (later)
+                    // SafetyApiService.sendEvent("SOS_BUTTON_PRESSED");
+                  },
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.red,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.4),
+                          blurRadius: 30,
+                          spreadRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        "SOS",
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -245,6 +254,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   _ActionCard(
                     icon: Icons.notifications_active,
                     label: "Pre-Alert",
+                    onTap: () {
+                      Navigator.pushNamed(context, '/pre-alert');
+
+                      // 🔔 event hook (later)
+                      // SafetyApiService.sendEvent("PRE_ALERT_STARTED");
+                    },
                   ),
                   _ActionCard(
                     icon: Icons.my_location,

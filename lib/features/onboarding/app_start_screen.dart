@@ -13,6 +13,7 @@ class AppStartScreen extends StatefulWidget {
 }
 
 class _AppStartScreenState extends State<AppStartScreen> {
+
   @override
   void initState() {
     super.initState();
@@ -22,39 +23,52 @@ class _AppStartScreenState extends State<AppStartScreen> {
   Future<void> _decideStartScreen() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final onboardingDone = prefs.getBool("onboarding_done") ?? false;
-    final token = prefs.getString("token");
+    final bool onboardingDone =
+        prefs.getBool("onboarding_done") ?? false;
 
-    await Future.delayed(const Duration(milliseconds: 300)); // smooth UX
+    final String? token = prefs.getString("token");
+
+    // small delay only for smooth UX
+    await Future.delayed(const Duration(milliseconds: 300));
 
     if (!mounted) return;
 
+    // 1️⃣ First-time user → onboarding
     if (!onboardingDone) {
-      // 1️⃣ First time user
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        MaterialPageRoute(
+          builder: (_) => const OnboardingScreen(),
+        ),
       );
-    } else if (token == null || token.isEmpty) {
-      // 2️⃣ Logged out user
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    } else {
-      // 3️⃣ Logged in user
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      return;
     }
+
+    // 2️⃣ Logged-out user → login
+    if (token == null || token.isEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const LoginScreen(),
+        ),
+      );
+      return;
+    }
+
+    // 3️⃣ Logged-in user (restart case) → home
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const HomeScreen(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child: CircularProgressIndicator(), // simple splash
+        child: CircularProgressIndicator(),
       ),
     );
   }
