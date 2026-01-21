@@ -26,7 +26,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   PasswordStrength _passwordStrength = PasswordStrength.weak;
 
-  final String baseUrl = "http://10.218.102.76:8080";//"http://192.168.1.6:8080";
+  final String baseUrl = "http://192.168.1.6:8080";//"http://10.218.102.76:8080";
 
   // 🔹 Password strength logic
   PasswordStrength checkStrength(String password) {

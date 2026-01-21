@@ -33,7 +33,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   bool isVerifying = false;
   bool isResending = false;
 
-  final String baseUrl = "http://10.218.102.76:8080";
+  final String baseUrl = "http://192.168.1.6:8080";//"http://10.218.102.76:8080";
 
   late String txnId; // mutable txnId
 
@@ -114,7 +114,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": widget.email,
-          "channel": "EMAIL", // ✅ FIX 1
+          "channel": "EMAIL", // FIX 1
         }),
       );
 
@@ -123,13 +123,13 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
 
-        // ✅ FIX 2: correct txnId path
+        //  FIX 2: correct txnId path
         final newTxnId = decoded["data"]?["data"]?["txnId"];
         if (newTxnId != null && newTxnId.toString().isNotEmpty) {
-          txnId = newTxnId;
+          txnId = newTxnId.toString();
         }
 
-        setState(() => secondsRemaining = 192);
+        setState(() => secondsRemaining = 240);
         startTimer();
 
         ScaffoldMessenger.of(context).showSnackBar(

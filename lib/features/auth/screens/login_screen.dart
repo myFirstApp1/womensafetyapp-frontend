@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:womensafetyapp/features/auth/screens/verify_otp_screen.dart';
 
 import '../../home/home_screen.dart';
 import 'forgot_password_screen.dart';
@@ -33,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => loading = true);
 
-    const baseUrl = "http://10.218.102.76:8080";//"http://192.168.1.6:8080";
+    const baseUrl = "http://192.168.1.6:8080";//"http://10.218.102.76:8080";
     final url = Uri.parse("$baseUrl/api/auth/login");
 
     try {
@@ -70,9 +71,42 @@ class _LoginScreenState extends State<LoginScreen> {
 
         final token = data2["token"];
         final userId = data2["userId"];
+        final txnId = data2["txnId"];
 
-        if (token == null || token.isEmpty) {
-          showSnack("Token missing");
+        final prefs = await SharedPreferences.getInstance();
+
+// 🔥 TEMP store email for OTP screen
+// Backend uses email, not username
+        await prefs.setString("pendingEmail", "${usernameCtrl.text.trim()}@gmail.com");
+
+        final email = prefs.getString("pendingEmail");
+
+// 🔁 UNVERIFIED USER → GO TO OTP
+        if ((token == null || token.toString().isEmpty) &&
+            txnId != null &&
+            txnId.toString().isNotEmpty) {
+
+          if (email == null || email.isEmpty) {
+            showSnack("Email not found. Please register again.");
+            return;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please verify OTP before login")),
+          );
+
+          await Future.delayed(const Duration(milliseconds: 300));
+          if (!mounted) return;
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => VerifyOtpScreen(
+                email: email,                // ✅ now non-null
+                txnId: txnId.toString(),
+              ),
+            ),
+          );
           return;
         }
 
@@ -88,15 +122,6 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
-      } else {
-        String message = "Login failed";
-        try {
-          final body = jsonDecode(response.body);
-          if (body["message"] != null) {
-            message = body["message"].toString();
-          }
-        } catch (_) {}
-        showSnack(message);
       }
     } catch (e) {
       setState(() => loading = false);

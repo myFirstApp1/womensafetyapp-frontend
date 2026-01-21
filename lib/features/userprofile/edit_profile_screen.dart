@@ -45,7 +45,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (token == null || userId == null) return;
 
       final url =
-      Uri.parse("http://10.218.102.76:8082/api/users/$userId"); //http://192.168.1.6:8082/api/users/$userId
+      Uri.parse("http://192.168.1.6:8082/api/users/$userId"); //"http://10.218.102.76:8082/api/users/$userId"
 
       final response = await http.get(
         url,
@@ -63,7 +63,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           phoneCtrl.text = data["phone"] ?? "";
           addressCtrl.text = data["address"] ?? "";
           profileImageUrl = data["profilePictureUrl"];
-          localImageFile = null; // ✅ reset preview
+          localImageFile = null; // reset preview
         });
       }
     } catch (e) {
@@ -90,7 +90,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               );
               if (image != null) {
                 setState(() {
-                  localImageFile = File(image.path); // ✅ preview only
+                  localImageFile = File(image.path); //  preview only
                   profileImageUrl = null; // ❌ not saved
                 });
               }
@@ -181,7 +181,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       final url =
-      Uri.parse("http://10.218.102.76:8082/api/users/$userId"); //http://192.168.1.6:8082/api/users/$userId
+      Uri.parse("http://192.168.1.6:8082/api/users/$userId"); //http://10.218.102.76:8082/api/users/$userId
 
       final response = await http.put(
         url,

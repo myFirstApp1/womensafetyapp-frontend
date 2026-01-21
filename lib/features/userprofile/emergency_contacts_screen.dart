@@ -14,7 +14,7 @@ class EmergencyContactsScreen extends StatefulWidget {
 }
 
 class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
-  final String baseUrl = "http://10.218.102.76:8082";//"http://192.168.1.6:8082";
+  final String baseUrl = "http://192.168.1.6:8082";//"http://10.218.102.76:8082";
   List contacts = [];
   bool isLoading = true;
 

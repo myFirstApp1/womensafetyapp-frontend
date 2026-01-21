@@ -42,7 +42,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => loading = true);
 
-    const baseUrl = "http://10.218.102.76:8080"; // "http://192.168.1.6:8080";
+    const baseUrl = "http://192.168.1.6:8080";//"http://10.218.102.76:8080";
     final url = Uri.parse("$baseUrl/api/auth/register");
 
     try {

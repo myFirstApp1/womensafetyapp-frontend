@@ -26,7 +26,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
   final relationController = TextEditingController();
 
   bool isSaving = false;
-  final String baseUrl = "http://10.218.102.76:8082";//"http://192.168.1.6:8082";
+  final String baseUrl = "http://192.168.1.6:8082";//"http://10.218.102.76:8082";
 
   @override
   void initState() {
