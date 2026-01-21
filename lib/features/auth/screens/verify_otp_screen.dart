@@ -271,21 +271,34 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         focusNode: _focusNodes[index],
         maxLength: 1,
         keyboardType: TextInputType.number,
-        textAlign: TextAlign.center,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+
+        // 🔥 CRITICAL FIX
+        textAlign: TextAlign.center,
+        textAlignVertical: TextAlignVertical.center,
+        cursorWidth: 2,
+
         style: const TextStyle(
-          color: textDark,
-          fontSize: 18,
+          fontSize: 20,
           fontWeight: FontWeight.bold,
+          color: Color(0xFFAD1457),
         ),
         decoration: InputDecoration(
           counterText: "",
           filled: true,
-          fillColor: fieldPink,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+          fillColor: const Color(0xFFFFEBF0),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFF8BBD0)),
           ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: Color(0xFFF06292),
+              width: 2,
+            ),
+          ),
+          contentPadding: EdgeInsets.zero, // 🔥 VERY IMPORTANT
         ),
         onChanged: (v) {
           if (v.isNotEmpty && index < 5) {
