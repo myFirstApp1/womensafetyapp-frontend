@@ -32,7 +32,14 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchUserProfile();
   }
 
-Future<void> _fetchUserProfile() async {
+  Future<void> loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userName = prefs.getString("username") ?? "User";
+    });
+  }
+
+  Future<void> _fetchUserProfile() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("token");

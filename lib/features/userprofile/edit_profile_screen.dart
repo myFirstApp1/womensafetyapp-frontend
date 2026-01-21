@@ -201,6 +201,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       setState(() => loading = false);
 
       if (response.statusCode == 200 || response.statusCode == 204) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString("username", nameCtrl.text.trim());
         Navigator.pop(context, true);
       } else {
         _showSnack("Failed to update userprofile");
@@ -213,6 +215,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _showSnack(String msg) {
     if (!mounted) return;
+    // 🔥 tell previous screen to refresh
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
   }
@@ -298,7 +301,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       : () {
                     if (_formKey.currentState!.validate()) {
                       FocusScope.of(context).unfocus(); // Auto-dismiss keyboard on submit:
-
                       updateProfile();
                     }
                   },

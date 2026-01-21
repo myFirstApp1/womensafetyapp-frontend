@@ -219,10 +219,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       builder: (_) => const EditProfileScreen(),
                     ),
                   );
-
                   if (updated == true) {
                     setState(() => loading = true);
-                    _fetchProfile();
+                    await _fetchProfile();
+                    if (!mounted) return;
+                    setState(() => loading = false);
+
+                    Navigator.pop(context, true); // 🔥 TELL HOME SCREEN
                   }
                 },
                 style: ElevatedButton.styleFrom(
