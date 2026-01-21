@@ -16,7 +16,6 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
-
   final nameCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
@@ -46,7 +45,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (token == null || userId == null) return;
 
       final url =
-      Uri.parse("http://192.168.1.6:8082/api/users/$userId"); //"http://10.218.102.76:8082/api/users/$userId"
+      Uri.parse("http://192.168.1.6:8082/api/users/$userId");
 
       final response = await http.get(
         url,
@@ -64,7 +63,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           phoneCtrl.text = data["phone"] ?? "";
           addressCtrl.text = data["address"] ?? "";
           profileImageUrl = data["profilePictureUrl"];
-          localImageFile = null; // reset preview
+          localImageFile = null;
         });
       }
     } catch (e) {
@@ -72,57 +71,98 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // ================= IMAGE OPTIONS =================
+  // ================= IMAGE OPTIONS (UI UPDATED ONLY) =================
 
   void _showImageOptions() {
+    const rosePrimary = Color(0xFFF06292);
+    const roseLight = Color(0xFFFFEBF0);
+    const roseBorder = Color(0xFFF8BBD0);
+    const roseText = Color(0xFFAD1457);
+
     showModalBottomSheet(
       context: context,
-      builder: (_) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.photo),
-            title: const Text("Choose from Gallery"),
-            onTap: () async {
-              Navigator.pop(context);
-              final image = await _picker.pickImage(
-                source: ImageSource.gallery,
-                imageQuality: 70,
-              );
-              if (image != null) {
-                setState(() {
-                  localImageFile = File(image.path); //  preview only
-                  profileImageUrl = null; // ❌ not saved
-                });
-              }
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.camera_alt),
-            title: const Text("Take Photo"),
-            onTap: () async {
-              Navigator.pop(context);
-              final image = await _picker.pickImage(
-                source: ImageSource.camera,
-                imageQuality: 70,
-              );
-              if (image != null) {
-                setState(() {
-                  localImageFile = File(image.path); // ✅ preview only
-                  profileImageUrl = null;
-                });
-              }
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.link),
-            title: const Text("Paste Image URL"),
-            onTap: () {
-              Navigator.pop(context);
-              _showImageUrlDialog();
-            },
-          ),
-        ],
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
+        decoration: const BoxDecoration(
+          color: roseLight,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 4,
+              width: 44,
+              decoration: BoxDecoration(
+                color: roseBorder,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Update Profile Photo",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: roseText,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            _PhotoOption(
+              icon: Icons.photo_library_outlined,
+              title: "Choose from Gallery",
+              subtitle: "Select a photo from your device",
+              onTap: () async {
+                Navigator.pop(context);
+                final image = await _picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 70,
+                );
+                if (image != null) {
+                  setState(() {
+                    localImageFile = File(image.path);
+                    profileImageUrl = null;
+                  });
+                }
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            _PhotoOption(
+              icon: Icons.camera_alt_outlined,
+              title: "Take Photo",
+              subtitle: "Use your camera",
+              onTap: () async {
+                Navigator.pop(context);
+                final image = await _picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 70,
+                );
+                if (image != null) {
+                  setState(() {
+                    localImageFile = File(image.path);
+                    profileImageUrl = null;
+                  });
+                }
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            _PhotoOption(
+              icon: Icons.link,
+              title: "Paste Image URL",
+              subtitle: "Use an online image link",
+              onTap: () {
+                Navigator.pop(context);
+                _showImageUrlDialog();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -150,7 +190,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               final url = controller.text.trim();
               if (url.startsWith("http")) {
                 setState(() {
-                  profileImageUrl = url; // ✅ backend-safe
+                  profileImageUrl = url;
                   localImageFile = null;
                 });
               }
@@ -163,7 +203,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // ================= UPDATE PROFILE =================
+  // ================= UPDATE PROFILE (UNCHANGED) =================
 
   Future<void> updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
@@ -182,7 +222,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       final url =
-      Uri.parse("http://192.168.1.6:8082/api/users/$userId"); //http://10.218.102.76:8082/api/users/$userId
+      Uri.parse("http://192.168.1.6:8082/api/users/$userId");
 
       final response = await http.put(
         url,
@@ -194,7 +234,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           "name": nameCtrl.text.trim(),
           "phone": phoneCtrl.text.trim(),
           "address": addressCtrl.text.trim(),
-          "profilePictureUrl": profileImageUrl, // ✅ ONLY URL
+          "profilePictureUrl": profileImageUrl,
         }),
       );
 
@@ -205,7 +245,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         await prefs.setString("username", nameCtrl.text.trim());
         Navigator.pop(context, true);
       } else {
-        _showSnack("Failed to update userprofile");
+        _showSnack("Failed to update profile");
       }
     } catch (e) {
       setState(() => loading = false);
@@ -215,7 +255,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _showSnack(String msg) {
     if (!mounted) return;
-    // 🔥 tell previous screen to refresh
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
   }
@@ -224,18 +263,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const rosePrimary = Color(0xFFF06292);
+    const roseLight = Color(0xFFFFEBF0);
+    const roseBorder = Color(0xFFF8BBD0);
+    const roseText = Color(0xFFAD1457);
+
     ImageProvider avatar;
 
     if (localImageFile != null) {
-      avatar = FileImage(localImageFile!); // ✅ preview
+      avatar = FileImage(localImageFile!);
     } else if (profileImageUrl != null && profileImageUrl!.isNotEmpty) {
-      avatar = NetworkImage(profileImageUrl!); // ✅ saved image
+      avatar = NetworkImage(profileImageUrl!);
     } else {
       avatar = const AssetImage("assets/images/avatar.png");
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Edit Profile")),
+      backgroundColor: roseLight,
+      appBar: AppBar(
+        title: const Text("Edit Profile"),
+        backgroundColor: Colors.white,
+        foregroundColor: roseText,
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -247,70 +297,197 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: Stack(
                   alignment: Alignment.bottomRight,
                   children: [
-                    CircleAvatar(radius: 50, backgroundImage: avatar),
-                    const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.edit, size: 18),
+                    CircleAvatar(
+                      radius: 54,
+                      backgroundColor: roseBorder,
+                      backgroundImage: avatar,
+                    ),
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(6),
+                      child: const Icon(Icons.edit,
+                          size: 18, color: rosePrimary),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: "Name"),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return "Name is required";
-                  }
-                  if (value.trim().length < 3) {
-                    return "Name must be at least 3 characters";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: phoneCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: "Phone"),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return "Phone number is required";
-                  }
-                  if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                    return "Enter valid 10-digit phone number";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: addressCtrl,
-                decoration: const InputDecoration(labelText: "Address"),
-                maxLines: 3,
-              ),
               const SizedBox(height: 30),
+
+              // ---- Card ----
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: roseBorder),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Personal Information",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: roseText,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    TextFormField(
+                      controller: nameCtrl,
+                      enabled: false,
+                      decoration: InputDecoration(
+                        labelText: "Name",
+                        helperText: "Name cannot be changed",
+                        filled: true,
+                        fillColor: roseLight,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller: phoneCtrl,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: "Phone Number",
+                        prefixIcon:
+                        const Icon(Icons.phone, color: rosePrimary),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: roseBorder),
+                        ),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return "Phone number is required";
+                        }
+                        if (!RegExp(r'^[0-9]{10}$').hasMatch(v)) {
+                          return "Enter valid 10-digit phone number";
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller: addressCtrl,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: "Address",
+                        prefixIcon: const Icon(Icons.location_on,
+                            color: rosePrimary),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: roseBorder),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 54,
                 child: ElevatedButton(
-                  onPressed: loading
-                      ? null
-                      : () {
-                    if (_formKey.currentState!.validate()) {
-                      FocusScope.of(context).unfocus(); // Auto-dismiss keyboard on submit:
-                      updateProfile();
-                    }
-                  },
+                  onPressed: loading ? null : updateProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: rosePrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                   child: loading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("Save Changes"),
+                      : const Text(
+                    "Save Changes",
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                  ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ================= PHOTO OPTION WIDGET =================
+
+class _PhotoOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _PhotoOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const rosePrimary = Color(0xFFF06292);
+    const roseBorder = Color(0xFFF8BBD0);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: roseBorder),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: rosePrimary.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: rosePrimary),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.black54)),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

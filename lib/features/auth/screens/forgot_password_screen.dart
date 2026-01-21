@@ -98,13 +98,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+        iconTheme: IconThemeData(
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
       body: Padding(
@@ -115,51 +114,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             const SizedBox(height: 40),
 
             // 🔹 Title
-            const Text(
-              "Forget Password",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+            Text(
+              "Forgot Password",
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-
             const SizedBox(height: 12),
 
             // 🔹 Description
-            const Text(
-              "Please enter your email to receive a\nconfirmation code to set a new password",
+            Text(
+              "Please enter your email to receive a\nconfirmation code to reset your password",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                height: 1.4,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-
             const SizedBox(height: 40),
 
             // 🔹 Email Field
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1C),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: "Email",
-                  hintStyle: TextStyle(color: Colors.white54),
-                  prefixIcon: Icon(Icons.email_outlined, color: Colors.white54),
-                  border: InputBorder.none,
-                  contentPadding:
-                  EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-                ),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                hintText: "Email address",
+                prefixIcon: Icon(Icons.email_outlined),
               ),
             ),
-
             const SizedBox(height: 30),
 
             // 🔹 Send Code Button
@@ -168,33 +145,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               height: 52,
               child: ElevatedButton(
                 onPressed: isLoading ? null : sendOtp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFD400),
-                  disabledBackgroundColor: const Color(0xFFFFD400),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
                 child: isLoading
                     ? const SizedBox(
                   height: 22,
                   width: 22,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    color: Colors.black,
+                    color: Colors.white,
                   ),
                 )
                     : const Text(
                   "Send Code",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
 
             // 🔹 Resend Timer
@@ -204,8 +169,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 canResend
                     ? "Resend Email"
                     : "Resend in 00:${secondsRemaining.toString().padLeft(2, '0')}",
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
                   fontSize: 14,
                 ),
               ),

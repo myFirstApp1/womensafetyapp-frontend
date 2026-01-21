@@ -7,20 +7,20 @@ class PasswordSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: const Color(0xFFFFF1F6), // 🌸 soft pink bg
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 🔹 Yellow Check Icon
+            // 🌸 Pink Success Icon
             Container(
               height: 90,
               width: 90,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: const Color(0xFFFFD400),
+                  color: const Color(0xFFF06292),
                   width: 3,
                 ),
               ),
@@ -28,7 +28,7 @@ class PasswordSuccessScreen extends StatelessWidget {
                 child: Icon(
                   Icons.check,
                   size: 50,
-                  color: Color(0xFFFFD400),
+                  color: Color(0xFFF06292),
                 ),
               ),
             ),
@@ -41,7 +41,7 @@ class PasswordSuccessScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Color(0xFF333333),
               ),
             ),
 
@@ -52,7 +52,7 @@ class PasswordSuccessScreen extends StatelessWidget {
               "Your password has been changed\nsuccessfully!",
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white70,
+                color: Colors.black54,
                 fontSize: 14,
                 height: 1.4,
               ),
@@ -60,7 +60,7 @@ class PasswordSuccessScreen extends StatelessWidget {
 
             const SizedBox(height: 40),
 
-            // 🔹 Go to Login Button
+            // 🌸 Go to Login Button
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -75,15 +75,16 @@ class PasswordSuccessScreen extends StatelessWidget {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFD400),
+                  backgroundColor: const Color(0xFFF06292),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
+                  elevation: 0,
                 ),
                 child: const Text(
                   "Go to Login",
                   style: TextStyle(
-                    color: Colors.black,
+                    color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),

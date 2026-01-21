@@ -14,6 +14,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   int currentIndex = 0;
 
+  // 🎨 THEME COLORS
+  static const bgPink = Color(0xFFFFF1F5);
+  static const primaryPink = Color(0xFFF06292);
+  static const softPink = Color(0xFFFFE4EC);
+  static const textDark = Color(0xFF333333);
+
   Future<void> _finishOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool("onboarding_done", true);
@@ -29,26 +35,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFBF7),
+      backgroundColor: bgPink,
       body: SafeArea(
         child: Column(
           children: [
             const SizedBox(height: 16),
 
-            // Dots indicator
+            // 🔹 Dots Indicator
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 onboardingList.length,
-                    (index) => Container(
+                    (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: 8,
+                  width: currentIndex == index ? 12 : 8,
                   height: 8,
                   decoration: BoxDecoration(
                     color: currentIndex == index
-                        ? const Color(0xFFD4AF37)
-                        : Colors.grey.shade300,
-                    shape: BoxShape.circle,
+                        ? primaryPink
+                        : softPink,
+                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
               ),
@@ -70,7 +77,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: Column(
                       children: [
                         Expanded(
-                          child: Image.asset(item.image, fit: BoxFit.contain),
+                          child: Image.asset(
+                            item.image,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                         const SizedBox(height: 24),
                         Text(
@@ -79,6 +89,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           style: const TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
+                            color: textDark,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -99,6 +110,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
 
+            // 🔹 Bottom Button
             Padding(
               padding: const EdgeInsets.all(24),
               child: SizedBox(
@@ -106,10 +118,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD4AF37),
+                    backgroundColor: primaryPink,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
+                    elevation: 0,
                   ),
                   onPressed: () {
                     if (currentIndex == onboardingList.length - 1) {
@@ -126,8 +139,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ? "Get Started"
                         : "Next",
                     style: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),

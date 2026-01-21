@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AddContactSheet extends StatefulWidget {
   final Future<void> Function() onAdded;
-  final Map<String, dynamic>? contact; // edit mode
+  final Map<String, dynamic>? contact;
   final List<String> existingNumbers;
 
   const AddContactSheet({
@@ -26,19 +26,22 @@ class _AddContactSheetState extends State<AddContactSheet> {
   final relationController = TextEditingController();
 
   bool isSaving = false;
-  final String baseUrl = "http://192.168.1.6:8082";//"http://10.218.102.76:8082";
+  final String baseUrl = "http://192.168.1.6:8082";
+
+  // 🌸 theme colors
+  static const rosePrimary = Color(0xFFF06292);
+  static const roseLight   = Color(0xFFFFEBF0);
+  static const roseBorder  = Color(0xFFF8BBD0);
+  static const roseText    = Color(0xFFAD1457);
 
   @override
   void initState() {
     super.initState();
-
     if (widget.contact != null) {
       nameController.text = widget.contact!["name"] ?? "";
       relationController.text = widget.contact!["relation"] ?? "";
-
-      // 🔹 remove +91 when prefilling
-      final phone = widget.contact!["phoneNumber"] ?? "";
-      phoneController.text = phone.replaceFirst("+91", "");
+      phoneController.text =
+          (widget.contact!["phoneNumber"] ?? "").replaceFirst("+91", "");
     }
   }
 
@@ -62,11 +65,8 @@ class _AddContactSheetState extends State<AddContactSheet> {
 
     final formattedPhone = "+91${phoneController.text.trim()}";
 
-    // DUPLICATE CHECK
     final isDuplicate = widget.existingNumbers.any(
-          (p) =>
-      p == formattedPhone &&
-          p != widget.contact?["phoneNumber"],
+          (p) => p == formattedPhone && p != widget.contact?["phoneNumber"],
     );
 
     if (isDuplicate) {
@@ -83,12 +83,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
       final token = prefs.getString("token");
       final userId = prefs.getString("userId");
 
-      if (token == null || userId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Session expired. Please login again.")),
-        );
-        return;
-      }
+      if (token == null || userId == null) return;
 
       final isEdit = widget.contact != null;
 
@@ -109,44 +104,31 @@ class _AddContactSheetState extends State<AddContactSheet> {
           "phoneNumber": formattedPhone,
           "relation": relationController.text.trim(),
         }),
-      ).timeout(const Duration(seconds: 10)); // ✅ CRITICAL FIX
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (!mounted) return;
-
-        Navigator.pop(context); // ✅ CLOSE SHEET
-        await widget.onAdded(); // ✅ REFRESH LIST
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-            Text("Failed to save contact (${response.statusCode})"),
-          ),
-        );
+        Navigator.pop(context);
+        await widget.onAdded();
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Unable to connect to server"),
-        ),
-      );
     } finally {
-      if (mounted) {
-        setState(() => isSaving = false); // ✅ ALWAYS RESET
-      }
+      if (mounted) setState(() => isSaving = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
+      child: Container(
         padding: EdgeInsets.only(
           left: 20,
           right: 20,
-          top: 20,
+          top: 16,
           bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        decoration: const BoxDecoration(
+          color: roseLight,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -155,9 +137,9 @@ class _AddContactSheetState extends State<AddContactSheet> {
             Center(
               child: Container(
                 height: 4,
-                width: 40,
+                width: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white30,
+                  color: roseBorder,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -169,66 +151,63 @@ class _AddContactSheetState extends State<AddContactSheet> {
                   ? "Add Emergency Contact"
                   : "Edit Emergency Contact",
               style: const TextStyle(
-                color: Colors.white,
+                color: roseText,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             _inputField(
-              nameController,
-              "Name",
-              Icons.person,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(
-                  RegExp(r"[a-zA-Z\s]"),
-                ),
+              controller: nameController,
+              hint: "Name",
+              icon: Icons.person,
+              formatters: [
+                FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z\s]")),
               ],
             ),
 
             const SizedBox(height: 14),
 
             _inputField(
-              phoneController,
-              "Phone Number",
-              Icons.phone,
+              controller: phoneController,
+              hint: "Phone Number",
+              icon: Icons.phone,
               keyboard: TextInputType.phone,
               maxLength: 10,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
+              formatters: [FilteringTextInputFormatter.digitsOnly],
             ),
 
             const SizedBox(height: 14),
 
             _inputField(
-              relationController,
-              "Relation (e.g. Brother, Mother)",
-              Icons.family_restroom,
+              controller: relationController,
+              hint: "Relation (Mother, Sister…)",
+              icon: Icons.family_restroom,
             ),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 28),
 
             SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 52,
               child: ElevatedButton(
                 onPressed: isFormValid ? saveContact : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD4AF37),
+                  backgroundColor: rosePrimary,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: isSaving
-                    ? const CircularProgressIndicator(color: Colors.black)
+                    ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                  widget.contact == null ? "Save" : "Update",
+                  widget.contact == null ? "Save Contact" : "Update Contact",
                   style: const TextStyle(
-                    color: Colors.black,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -239,34 +218,33 @@ class _AddContactSheetState extends State<AddContactSheet> {
     );
   }
 
-  Widget _inputField(
-      TextEditingController controller,
-      String hint,
-      IconData icon, {
-        TextInputType keyboard = TextInputType.text,
-        List<TextInputFormatter>? inputFormatters,
-        int? maxLength,
-      }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboard,
-        inputFormatters: inputFormatters,
-        maxLength: maxLength,
-        onChanged: (_) => setState(() {}),
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          counterText: "",
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white54),
-          prefixIcon: Icon(icon, color: Colors.white54),
-          border: InputBorder.none,
-          contentPadding:
-          const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+  Widget _inputField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    TextInputType keyboard = TextInputType.text,
+    List<TextInputFormatter>? formatters,
+    int? maxLength,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboard,
+      inputFormatters: formatters,
+      maxLength: maxLength,
+      onChanged: (_) => setState(() {}),
+      decoration: InputDecoration(
+        counterText: "",
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        prefixIcon: Icon(icon, color: rosePrimary),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: roseBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: rosePrimary, width: 2),
         ),
       ),
     );

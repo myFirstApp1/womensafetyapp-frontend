@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,18 +20,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? email;
   String phone = "";
   String address = "";
-  bool isVerified = false;
 
-  /// ✅ ONLY remote URL from backend
   String? profileImageUrl;
+
+  // 🎨 THEME COLORS
+  static const bgPink = Color(0xFFFFF1F5);
+  static const primaryPink = Color(0xFFF06292);
+  static const softPink = Color(0xFFFFE4EC);
+  static const textDark = Color(0xFF333333);
 
   @override
   void initState() {
     super.initState();
     _fetchProfile();
   }
-
-  // ================= EMAIL FROM JWT (UNCHANGED) =================
 
   String? _extractEmailFromToken(String token) {
     try {
@@ -50,14 +51,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ================= PROFILE API =================
   Future<void> logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
-
-    // Clear everything (safe)
     await prefs.clear();
 
-    // Navigate to Login & remove all previous routes
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -71,13 +68,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final token = prefs.getString("token");
       final userId = prefs.getString("userId");
 
-      if (token == null || userId == null) {
-        _showError("Session expired. Please login again.");
-        return;
-      }
+      if (token == null || userId == null) return;
 
       final url =
-      Uri.parse("http://192.168.1.6:8082/api/users/$userId"); //"http://10.218.102.76:8082/api/users/$userId"
+      Uri.parse("http://192.168.1.6:8082/api/users/$userId");
 
       final response = await http.get(
         url,
@@ -97,28 +91,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           email = resolvedEmail;
           phone = data["phone"] ?? "";
           address = data["address"] ?? "";
-          isVerified = data["isVerified"] ?? false;
-
-          /// ✅ accept ONLY http URLs
-          final img = data["profilePictureUrl"];
           profileImageUrl =
-          (img != null && img.startsWith("http")) ? img : null;
-
+          (data["profilePictureUrl"]?.startsWith("http") ?? false)
+              ? data["profilePictureUrl"]
+              : null;
           loading = false;
         });
-      } else {
-        _showError("Failed to load userprofile");
       }
-    } catch (e) {
-      _showError("Something went wrong");
+    } catch (_) {
+      setState(() => loading = false);
     }
-  }
-
-  void _showError(String msg) {
-    if (!mounted) return;
-    setState(() => loading = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
   }
 
   void showLogoutDialog(BuildContext context) {
@@ -147,22 +129,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ================= UI =================
-
   @override
   Widget build(BuildContext context) {
-    final ImageProvider avatar =
-    (profileImageUrl != null && profileImageUrl!.startsWith("http"))
+    final avatar = profileImageUrl != null
         ? NetworkImage(profileImageUrl!)
-        : const AssetImage("assets/images/avatar.png");
+        : const AssetImage("assets/images/avatar.png") as ImageProvider;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F7F3),
+      backgroundColor: bgPink,
       appBar: AppBar(
         title: const Text("Profile"),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        foregroundColor: textDark,
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
@@ -170,11 +149,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // 🔹 Avatar (READ ONLY)
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.grey.shade200,
-              backgroundImage: avatar,
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: softPink,
+              ),
+              child: CircleAvatar(
+                radius: 48,
+                backgroundImage: avatar,
+              ),
             ),
 
             const SizedBox(height: 12),
@@ -184,13 +168,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+                color: textDark,
               ),
             ),
 
             const SizedBox(height: 4),
 
             Text(
-              email != null && email!.isNotEmpty ? email! : "—",
+              email ?? "—",
               style: const TextStyle(color: Colors.black54),
             ),
 
@@ -201,17 +186,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 _ProfileRow(label: "Phone", value: phone),
                 _ProfileRow(label: "Address", value: address),
-                // _ProfileRow(
-                //   label: "Verified",
-                //   value: isVerified ? "Yes" : "No",
-                // ),
               ],
             ),
+
             const SizedBox(height: 30),
+
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryPink,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
                 onPressed: () async {
                   final updated = await Navigator.push<bool>(
                     context,
@@ -219,32 +208,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       builder: (_) => const EditProfileScreen(),
                     ),
                   );
+
                   if (updated == true) {
                     setState(() => loading = true);
                     await _fetchProfile();
                     if (!mounted) return;
                     setState(() => loading = false);
-
-                    Navigator.pop(context, true); // 🔥 TELL HOME SCREEN
+                    Navigator.pop(context, true);
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD4AF37),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                child: const Text(
+                  "Edit Profile",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-                child: const Text("Edit Profile"),
               ),
             ),
-            const SizedBox(height: 30),
+
+            const SizedBox(height: 20),
 
             SizedBox(
               width: double.infinity,
               height: 45,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 onPressed: () => showLogoutDialog(context),
                 child: const Text(
@@ -260,8 +253,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ================= REUSABLE WIDGETS =================
-
 class _ProfileCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
@@ -274,10 +265,9 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _ProfileScreenState.softPink,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -286,8 +276,8 @@ class _ProfileCard extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 16,
               fontWeight: FontWeight.bold,
+              color: _ProfileScreenState.textDark,
             ),
           ),
           const SizedBox(height: 12),
@@ -324,9 +314,7 @@ class _ProfileRow extends StatelessWidget {
             flex: 5,
             child: Text(
               value.isNotEmpty ? value : "—",
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],

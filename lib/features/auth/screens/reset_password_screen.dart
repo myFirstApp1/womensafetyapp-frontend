@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:womensafetyapp/features/auth/screens/password_success_screen.dart';
-
-import 'login_screen.dart';
+import 'password_success_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String token;
@@ -17,8 +15,8 @@ class ResetPasswordScreen extends StatefulWidget {
 enum PasswordStrength { weak, medium, strong }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmController = TextEditingController();
 
   bool isLoading = false;
   bool showPassword = false;
@@ -26,12 +24,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   PasswordStrength _passwordStrength = PasswordStrength.weak;
 
-  final String baseUrl = "http://192.168.1.6:8080";//"http://10.218.102.76:8080";
+  final String baseUrl = "http://192.168.1.6:8080";
 
-  // 🔹 Password strength logic
+  // 🔹 Password strength logic (UNCHANGED)
   PasswordStrength checkStrength(String password) {
     if (password.length < 8) return PasswordStrength.weak;
-
     final hasUpper = password.contains(RegExp(r'[A-Z]'));
     final hasNumber = password.contains(RegExp(r'[0-9]'));
     final hasSpecial =
@@ -66,16 +63,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 
   Future<void> resetPassword() async {
-    final password = passwordController.text.trim();
-    final confirm = confirmController.text.trim();
-
     if (_passwordStrength != PasswordStrength.strong) {
       _showMessage("Please choose a strong password");
       return;
     }
 
-    if (password != confirm) {
-      _showMessage("Both passwords must match");
+    if (passwordController.text != confirmController.text) {
+      _showMessage("Passwords do not match");
       return;
     }
 
@@ -87,13 +81,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "token": widget.token,
-          "newPassword": password,
+          "newPassword": passwordController.text.trim(),
         }),
       );
 
       if (response.statusCode == 200) {
-        _showMessage("Password reset successful");
-
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
@@ -101,12 +93,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
               (route) => false,
         );
-
       } else {
         _showMessage("Reset password failed");
       }
     } catch (e) {
-      _showMessage("Error: $e");
+      _showMessage("Something went wrong");
     }
 
     setState(() => isLoading = false);
@@ -120,41 +111,37 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: const Color(0xFFFFF1F6),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
 
             const Text(
               "Create New Password",
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 26,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Color(0xFF333333),
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
 
             const Text(
-              "Enter your new password",
-              style: TextStyle(color: Colors.white70),
+              "Your new password must be strong and secure",
+              style: TextStyle(color: Colors.black54),
             ),
 
             const SizedBox(height: 30),
 
-            // 🔹 New Password
             _passwordField(
               controller: passwordController,
               hint: "New Password",
@@ -167,9 +154,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               },
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
-            // 🔹 Strength Indicator
             Row(
               children: [
                 Expanded(
@@ -179,7 +165,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         : _passwordStrength == PasswordStrength.medium
                         ? 0.66
                         : 1.0,
-                    backgroundColor: Colors.white12,
+                    backgroundColor: Colors.pink.shade100,
                     valueColor:
                     AlwaysStoppedAnimation(strengthColor()),
                     minHeight: 6,
@@ -199,18 +185,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
             const SizedBox(height: 20),
 
-            // 🔹 Confirm Password
             _passwordField(
               controller: confirmController,
               hint: "Confirm Password",
               visible: showConfirmPassword,
               toggle: () => setState(
-                      () => showConfirmPassword = !showConfirmPassword),
+                    () => showConfirmPassword = !showConfirmPassword,
+              ),
             ),
 
             const Spacer(),
 
-            // 🔹 Reset Button
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -220,18 +205,20 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ? null
                     : resetPassword,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFD400),
+                  backgroundColor: const Color(0xFFF06292),
+                  disabledBackgroundColor: const Color(0xFFF8BBD0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
                 child: isLoading
                     ? const CircularProgressIndicator(
-                    color: Colors.black)
+                  color: Colors.white,
+                )
                     : const Text(
                   "Reset Password",
                   style: TextStyle(
-                    color: Colors.black,
+                    color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -255,23 +242,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1C),
+        color: const Color(0xFFFFE4EC),
         borderRadius: BorderRadius.circular(14),
       ),
       child: TextField(
         controller: controller,
         obscureText: !visible,
         onChanged: onChanged,
-        style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white54),
+          hintStyle: const TextStyle(color: Colors.black38),
           prefixIcon:
-          const Icon(Icons.lock_outline, color: Colors.white54),
+          const Icon(Icons.lock_outline, color: Color(0xFFF06292)),
           suffixIcon: IconButton(
             icon: Icon(
               visible ? Icons.visibility : Icons.visibility_off,
-              color: Colors.white54,
+              color: Colors.black45,
             ),
             onPressed: toggle,
           ),

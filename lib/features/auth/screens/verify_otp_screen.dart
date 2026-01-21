@@ -27,15 +27,20 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   final List<FocusNode> _focusNodes =
   List.generate(6, (_) => FocusNode());
 
-  int secondsRemaining = 240; // 04:00
+  int secondsRemaining = 240;
   Timer? _timer;
 
   bool isVerifying = false;
   bool isResending = false;
 
-  final String baseUrl = "http://192.168.1.6:8080";//"http://10.218.102.76:8080";
+  final String baseUrl = "http://192.168.1.6:8080";
+  late String txnId;
 
-  late String txnId; // mutable txnId
+  // 🎨 THEME COLORS
+  static const bgPink = Color(0xFFFFF1F5);
+  static const fieldPink = Color(0xFFFFE4EC);
+  static const primaryPink = Color(0xFFF06292);
+  static const textDark = Color(0xFF333333);
 
   @override
   void initState() {
@@ -71,34 +76,26 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         }),
       );
 
-      print("OTP VERIFY RESPONSE => ${response.body}");
-
       if (response.statusCode == 200) {
-        if (!mounted) return;
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Email verified successfully")),
         );
 
         await Future.delayed(const Duration(milliseconds: 300));
 
-        if (!mounted) return;
-
-        Navigator.of(context, rootNavigator: true).pushReplacement(
+        Navigator.pushAndRemoveUntil(
+          context,
           MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
         );
       } else {
         final decoded = jsonDecode(response.body);
-        final msg =
-            decoded["data"]?["message"] ?? "Invalid OTP";
-        _showError(msg);
+        _showError(decoded["data"]?["message"] ?? "Invalid OTP");
       }
-    } catch (e) {
-      _showError("Something went wrong. Try again.");
+    } catch (_) {
+      _showError("Something went wrong");
     } finally {
-      if (mounted) {
-        setState(() => isVerifying = false);
-      }
+      setState(() => isVerifying = false);
     }
   }
 
@@ -114,20 +111,14 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": widget.email,
-          "channel": "EMAIL", // FIX 1
+          "channel": "EMAIL",
         }),
       );
 
-      print("RESEND OTP RESPONSE => ${response.body}");
-
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-
-        //  FIX 2: correct txnId path
         final newTxnId = decoded["data"]?["data"]?["txnId"];
-        if (newTxnId != null && newTxnId.toString().isNotEmpty) {
-          txnId = newTxnId.toString();
-        }
+        if (newTxnId != null) txnId = newTxnId.toString();
 
         setState(() => secondsRemaining = 240);
         startTimer();
@@ -141,16 +132,11 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     } catch (_) {
       _showError("Network error");
     } finally {
-      if (mounted) {
-        setState(() => isResending = false);
-      }
+      setState(() => isResending = false);
     }
   }
 
-
-  // ---------------- HELPERS ----------------
   void _showError(String msg) {
-    if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
   }
@@ -167,12 +153,8 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    for (final c in _controllers) {
-      c.dispose();
-    }
-    for (final f in _focusNodes) {
-      f.dispose();
-    }
+    for (final c in _controllers) c.dispose();
+    for (final f in _focusNodes) f.dispose();
     super.dispose();
   }
 
@@ -180,11 +162,11 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: bgPink,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: Colors.white),
+        leading: const BackButton(color: textDark),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -195,9 +177,9 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
             const Text(
               "Verify Your Email",
               style: TextStyle(
-                color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
+                color: textDark,
               ),
             ),
 
@@ -206,7 +188,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
             Text(
               "Enter the 6-digit code sent to\n${widget.email}",
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70),
+              style: const TextStyle(color: Colors.black54),
             ),
 
             const SizedBox(height: 30),
@@ -220,26 +202,33 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
             Text(
               "Code expires in : $formattedTime",
-              style: const TextStyle(color: Colors.white70),
+              style: const TextStyle(color: Colors.black54),
             ),
 
             const SizedBox(height: 40),
 
             SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 52,
               child: ElevatedButton(
                 onPressed:
                 isOtpComplete && !isVerifying ? verifyOtp : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD4AF37),
+                  backgroundColor: primaryPink,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
                 child: isVerifying
-                    ? const CircularProgressIndicator(color: Colors.black)
-                    : const Text("Confirm Code"),
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                  "Confirm Code",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
 
@@ -254,14 +243,17 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                     ? resendOtp
                     : null,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white),
+                  side: const BorderSide(color: primaryPink),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
                 child: isResending
                     ? const CircularProgressIndicator()
-                    : const Text("Resend Code"),
+                    : const Text(
+                  "Resend Code",
+                  style: TextStyle(color: primaryPink),
+                ),
               ),
             ),
           ],
@@ -282,16 +274,16 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         textAlign: TextAlign.center,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         style: const TextStyle(
-          color: Colors.white,
+          color: textDark,
           fontSize: 18,
           fontWeight: FontWeight.bold,
         ),
         decoration: InputDecoration(
           counterText: "",
           filled: true,
-          fillColor: const Color(0xFF1C1C1C),
+          fillColor: fieldPink,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,
           ),
         ),
