@@ -16,6 +16,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
+
   final nameCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
@@ -256,28 +257,51 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextFormField(
                 controller: nameCtrl,
                 decoration: const InputDecoration(labelText: "Name"),
-                validator: (v) =>
-                v == null || v.isEmpty ? "Name is required" : null,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Name is required";
+                  }
+                  if (value.trim().length < 3) {
+                    return "Name must be at least 3 characters";
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: phoneCtrl,
-                decoration: const InputDecoration(labelText: "Phone"),
                 keyboardType: TextInputType.phone,
-                validator: (v) =>
-                v == null || v.isEmpty ? "Phone is required" : null,
+                decoration: const InputDecoration(labelText: "Phone"),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Phone number is required";
+                  }
+                  if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
+                    return "Enter valid 10-digit phone number";
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: addressCtrl,
                 decoration: const InputDecoration(labelText: "Address"),
+                maxLines: 3,
               ),
               const SizedBox(height: 30),
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: loading ? null : updateProfile,
+                  onPressed: loading
+                      ? null
+                      : () {
+                    if (_formKey.currentState!.validate()) {
+                      FocusScope.of(context).unfocus(); // Auto-dismiss keyboard on submit:
+
+                      updateProfile();
+                    }
+                  },
                   child: loading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text("Save Changes"),

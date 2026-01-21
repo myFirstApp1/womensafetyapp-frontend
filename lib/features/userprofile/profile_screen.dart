@@ -201,10 +201,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 _ProfileRow(label: "Phone", value: phone),
                 _ProfileRow(label: "Address", value: address),
-                _ProfileRow(
-                  label: "Verified",
-                  value: isVerified ? "Yes" : "No",
-                ),
+                // _ProfileRow(
+                //   label: "Verified",
+                //   value: isVerified ? "Yes" : "No",
+                // ),
               ],
             ),
             const SizedBox(height: 30),
