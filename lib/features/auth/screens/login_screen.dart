@@ -142,27 +142,24 @@ class _LoginScreenState extends State<LoginScreen> {
   }) async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 🔥 ALWAYS clear first (even same account)
-    await prefs.clear();
+    await prefs.clear(); // for refreshing
 
-    // Optional but recommended
+    // ✅ mark onboarding completed
+    await prefs.setBool("onboarding_done", true);
+
+    // optional
     await prefs.setBool("isLoggedIn", true);
 
-    // Decode JWT
+    // decode JWT
     Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
-
-    // Extract email (sub)
     String email = decodedToken['sub'];
 
-    // 🔥 Store latest values
+    // store auth data
     await prefs.setString("token", token);
     await prefs.setString("userId", userId);
     await prefs.setString("email", email);
 
-    debugPrint("Stored Email: $email");
-    print("✅ Stored userId: ${prefs.getString("userId")}");
-    print("✅ Stored email : ${prefs.getString("email")}");
-
+    debugPrint("✅ Stored token, userId, email");
   }
 
   // 🔵 UI STARTS HERE

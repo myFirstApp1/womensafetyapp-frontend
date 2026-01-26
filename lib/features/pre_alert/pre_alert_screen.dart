@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../services/safety_api_service.dart';
+
 class PreAlertScreen extends StatelessWidget {
   const PreAlertScreen({super.key});
 
@@ -74,9 +76,10 @@ class PreAlertScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 52,
                   child: OutlinedButton(
-                    onPressed: () {
-                      // 🔔 event hook (later)
-                      // SafetyApiService.sendEvent("PRE_ALERT_CANCELLED");
+                    onPressed: () async {
+                      await SafetyApiService.sendEvent(
+                        event: "CANCEL_PRE_ALERT",
+                      );
 
                       Navigator.pop(context);
                     },

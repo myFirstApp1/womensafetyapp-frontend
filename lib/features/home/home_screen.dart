@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -6,8 +7,15 @@ import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/safety_api_service.dart';
 import '../userprofile/emergency_contacts_screen.dart';
 import '../userprofile/profile_screen.dart';
+import 'dart:async';
+import 'package:sensors_plus/sensors_plus.dart';
+import 'package:flutter/services.dart';
+
+
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +31,16 @@ class _HomeScreenState extends State<HomeScreen> {
   final Location _location = Location();
   String userName = "User";
   String? profileImageUrl;
+  StreamSubscription<AccelerometerEvent>? _accelSub;
+  DateTime _lastShakeTime = DateTime.fromMillisecondsSinceEpoch(0);
+
+  int _shakeCount = 0;
+  DateTime _firstShakeTime =
+  DateTime.fromMillisecondsSinceEpoch(0);
+  static const double shakeThreshold = 18.0;
+  static const int shakeCooldownMs = 800;      // gap between shakes
+  static const int shakeWindowMs = 3000;       // total window for 3 shakes
+
 
   // 🎨 THEME COLORS
   static const bgPink = Color(0xFFFFF1F5);
@@ -30,11 +48,116 @@ class _HomeScreenState extends State<HomeScreen> {
   static const primaryPink = Color(0xFFF06292);
   static const textDark = Color(0xFF333333);
 
+
   @override
   void initState() {
     super.initState();
+    _restoreState();
     _initLocation();
     _fetchUserProfile();
+    _startShakeListener();
+    //_syncWithBackend();
+  }
+
+  Future<void> _restoreState() async {
+    final state = await SafetyApiService.getCurrentState();
+
+    if (!mounted) return;
+
+    if (state == "PRE_ALERT") {
+      Navigator.pushNamed(context, '/pre-alert');
+    } else if (state == "SOS_ACTIVE") {
+      Navigator.pushNamed(context, '/sos-active');
+    }
+  }
+
+
+  void _startShakeListener() {
+    _accelSub = accelerometerEvents.listen((event) {
+      final now = DateTime.now();
+
+      // prevent noise
+      if (now.difference(_lastShakeTime).inMilliseconds <
+          shakeCooldownMs) {
+        return;
+      }
+
+      final double x = event.x;
+      final double y = event.y;
+      final double z = event.z;
+
+      final double acceleration =
+      math.sqrt(x * x + y * y + z * z);
+
+      if (acceleration < shakeThreshold) return;
+
+      _lastShakeTime = now;
+
+      // First shake
+      if (_shakeCount == 0) {
+        _firstShakeTime = now;
+      }
+
+      _shakeCount++;
+
+      // Too slow → reset
+      if (now.difference(_firstShakeTime).inMilliseconds >
+          shakeWindowMs) {
+        _resetShake();
+        return;
+      }
+
+      debugPrint("📳 Shake $_shakeCount detected");
+
+      // 🎯 SUCCESS: 3 shakes
+      if (_shakeCount == 3) {
+        _onTripleShake();
+        _resetShake();
+      }
+    });
+  }
+
+  // Future<void> _syncWithBackend() async {
+  //   final state = await SafetyApiService.getStatus(userId);
+  //
+  //   if (state == "PRE_ALERT") {
+  //     Navigator.pushNamed(context, '/pre-alert');
+  //   } else if (state == "SOS_ACTIVE") {
+  //     Navigator.pushNamed(context, '/sos-active');
+  //   }
+  // }
+
+  Future<void> _onTripleShake() async {
+    await SafetyApiService.sendEvent(
+      event: "PHONE_SHAKE_DETECTED",
+    );
+
+    Navigator.pushNamed(context, '/sos-active');
+  }
+
+
+
+  void _resetShake() {
+    _shakeCount = 0;
+    _firstShakeTime =
+        DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  void _onPhoneShake() {
+    debugPrint("📳 PHONE SHAKE DETECTED");
+
+    // 🔔 EVENT ONLY (later)
+    // SafetyApiService.sendEvent("PHONE_SHAKE");
+
+    // ❌ No navigation
+    // ❌ No SOS trigger
+    // ❌ No state change
+  }
+
+  @override
+  void dispose() {
+    _accelSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchUserProfile() async {
@@ -166,20 +289,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: SizedBox(
                   height: 180,
                   width: double.infinity,
-                  child: _isLoadingLocation
+                  child: _isLoadingLocation || _currentLatLng == null
                       ? const Center(
-                      child: CircularProgressIndicator())
+                    child: CircularProgressIndicator(),
+                  )
                       : FlutterMap(
                     options: MapOptions(
-                      initialCenter: _currentLatLng!,
+                      initialCenter: _currentLatLng!, // now SAFE
                       initialZoom: 15,
                     ),
                     children: [
                       TileLayer(
                         urlTemplate:
                         "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                        userAgentPackageName:
-                        "com.example.womensafetyapp",
+                        userAgentPackageName: "com.example.womensafetyapp",
                       ),
                       MarkerLayer(
                         markers: [
@@ -206,11 +329,11 @@ class _HomeScreenState extends State<HomeScreen> {
               Center(
                 child: GestureDetector(
                   onTap: () {
-                    // 1️⃣ Navigate immediately
                     Navigator.pushNamed(context, '/sos-active');
 
-                    // 2️⃣ Event hook (later)
-                    // SafetyApiService.sendEvent("SOS_BUTTON_PRESSED");
+                    SafetyApiService.sendEvent(
+                      event: "SOS_BUTTON_PRESSED",
+                    );
                   },
                   child: Container(
                     width: 200,
@@ -254,12 +377,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   _ActionCard(
                     icon: Icons.notifications_active,
                     label: "Pre-Alert",
-                    onTap: () {
-                      Navigator.pushNamed(context, '/pre-alert');
+                      onTap: () async {
+                        await SafetyApiService.sendEvent(
+                          event: "PRE_ALERT_BUTTON_PRESSED",
+                        );
 
-                      // 🔔 event hook (later)
-                      // SafetyApiService.sendEvent("PRE_ALERT_STARTED");
-                    },
+                        Navigator.pushNamed(context, '/pre-alert');
+                      }
                   ),
                   _ActionCard(
                     icon: Icons.my_location,
