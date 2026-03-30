@@ -6,14 +6,26 @@ class SafetyApiService {
 
   static Future<void> sendEvent({
     required String event,
+    double? lat,
+    double? lng,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("token");
+    final userId = prefs.getString("userId");
 
-    if (token == null) return;
+    if (token == null || userId == null) return;
+
+    final uri = Uri.parse("$_baseUrl/event").replace(
+      queryParameters: {
+        "userId": userId,
+        "event": event,
+        if (lat != null) "lat": lat.toString(),
+        if (lng != null) "lng": lng.toString(),
+      },
+    );
 
     final response = await http.post(
-      Uri.parse("$_baseUrl/event?event=$event"),
+      uri,
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",

@@ -57,7 +57,14 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchUserProfile();
     _startShakeListener();
     //_syncWithBackend();
+    _saveDummyUser();
   }
+
+    Future<void> _saveDummyUser() async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString("userId", "e7536f97-7631-4ea1-a600-cd9ed50bb8ee");
+      await prefs.setString("token", "dummy-token");
+    }
 
   Future<void> _restoreState() async {
     final state = await SafetyApiService.getCurrentState();
@@ -128,14 +135,18 @@ class _HomeScreenState extends State<HomeScreen> {
   // }
 
   Future<void> _onTripleShake() async {
-    await SafetyApiService.sendEvent(
-      event: "PHONE_SHAKE_DETECTED",
-    );
+    try {
+      await SafetyApiService.sendEvent(
+        event: "PHONE_SHAKE_DETECTED",
+      );
+    } catch (e) {
+      debugPrint("⚠️ API failed but continuing to SOS screen");
+    }
+
+    if (!mounted) return;
 
     Navigator.pushNamed(context, '/sos-active');
   }
-
-
 
   void _resetShake() {
     _shakeCount = 0;
@@ -333,6 +344,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     SafetyApiService.sendEvent(
                       event: "SOS_BUTTON_PRESSED",
+                      lat: _currentLatLng!.latitude,
+                      lng: _currentLatLng!.longitude,
                     );
                   },
                   child: Container(

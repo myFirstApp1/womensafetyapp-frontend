@@ -94,7 +94,6 @@ class _SosActiveScreenState extends State<SosActiveScreen> {
   }
 }
 
-
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -171,4 +170,3 @@ class _SosActiveScreenState extends State<SosActiveScreen> {
       ),
     );
   }
-
