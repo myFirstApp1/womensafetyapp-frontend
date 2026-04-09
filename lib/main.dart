@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/home': (_) => const HomeScreen(),
         '/sos-active': (_) => const SosActiveScreen(),
-        '/pre-alert': (_) => const PreAlertScreen(),
+        '/pre-alert': (context) => const PreAlertScreen(),
       },
     );
   }
