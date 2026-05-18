@@ -53,7 +53,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    // await prefs.clear();
+    await prefs.remove("token");
+    await prefs.remove("userId");
+    await prefs.remove("email");
 
     Navigator.pushAndRemoveUntil(
       context,
@@ -65,10 +68,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _fetchProfile() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
       final token = prefs.getString("token");
       final userId = prefs.getString("userId");
 
-      if (token == null || userId == null) return;
+      if (token == null || userId == null) {
+        debugPrint("TOKEN OR USERID NULL");
+        return;
+      }
+
+      print("TOKEN USER ID: $userId");
 
       final url =
       Uri.parse("http://192.168.1.6:8082/api/users/$userId");
@@ -81,25 +90,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
       );
 
+      debugPrint("PROFILE STATUS = ${response.statusCode}");
+      debugPrint("PROFILE BODY = ${response.body}");
+
       if (response.statusCode == 200) {
+
         final data = jsonDecode(response.body);
+
         final resolvedEmail =
             data["email"] ?? _extractEmailFromToken(token);
+
+        if (!mounted) return;
 
         setState(() {
           name = data["name"] ?? "";
           email = resolvedEmail;
           phone = data["phone"] ?? "";
           address = data["address"] ?? "";
+
           profileImageUrl =
           (data["profilePictureUrl"]?.startsWith("http") ?? false)
               ? data["profilePictureUrl"]
               : null;
-          loading = false;
         });
+
+      } else {
+
+        debugPrint(
+            "PROFILE API FAILED -> ${response.statusCode}");
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                "Failed to load profile (${response.statusCode})"),
+          ),
+        );
       }
-    } catch (_) {
-      setState(() => loading = false);
+
+    } catch (e, stack) {
+
+      debugPrint("PROFILE ERROR: $e");
+
+      debugPrintStack(stackTrace: stack);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Profile load failed"),
+          ),
+        );
+      }
+
+    } finally {
+
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 

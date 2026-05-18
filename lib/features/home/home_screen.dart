@@ -57,14 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchUserProfile();
     _startShakeListener();
     //_syncWithBackend();
-    _saveDummyUser();
-  }
 
-    Future<void> _saveDummyUser() async {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString("userId", "e7536f97-7631-4ea1-a600-cd9ed50bb8ee");
-      await prefs.setString("token", "dummy-token");
-    }
+  }
 
   Future<void> _restoreState() async {
     final state = await SafetyApiService.getCurrentState();

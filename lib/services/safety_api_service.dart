@@ -13,6 +13,9 @@ class SafetyApiService {
     final token = prefs.getString("token");
     final userId = prefs.getString("userId");
 
+    print("TOKEN: $token");
+    print("USER ID: $userId");
+    print("EVENT: $event");
     if (token == null || userId == null) return;
 
     final uri = Uri.parse("$_baseUrl/event").replace(
@@ -36,6 +39,7 @@ class SafetyApiService {
       },
     );
 
+    print("API URL: $uri");
     print("STATUS CODE: ${response.statusCode}");
     print("RESPONSE: ${response.body}");
 

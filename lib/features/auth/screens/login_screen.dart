@@ -79,8 +79,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
 // 🔥 TEMP store email for OTP screen
 // Backend uses email, not username
-        await prefs.setString("pendingEmail", "${usernameCtrl.text.trim()}@gmail.com");
-
+        await prefs.setString(
+          "pendingEmail",
+          usernameCtrl.text.trim(),
+        );
         final email = prefs.getString("pendingEmail");
 
 // 🔁 UNVERIFIED USER → GO TO OTP
