@@ -533,6 +533,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 30),
 
+              // testing only
+              const SizedBox(height: 20),
+
+              Center(
+                child: ElevatedButton(
+
+                  onPressed: () async {
+
+                    try {
+
+                      await SafetyApiService.markDeviceOffBody();
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Device marked OFF BODY"),
+                          ),
+                        );
+                      }
+
+                    } catch (e) {
+
+                      debugPrint("OFF BODY ERROR: $e");
+                    }
+                  },
+
+                  child: const Text("Remove Device"),
+                ),
+              ),
+
               // 🔹 AI COMPANION
               Container(
                 padding: const EdgeInsets.all(16),
