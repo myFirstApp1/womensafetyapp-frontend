@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -143,7 +145,7 @@ class SafetyApiService {
 
     final response = await http.put(
       Uri.parse(
-        "http://192.168.1.6:8084/api/heartbeat/$userId",
+        "${ApiConfig.safetyBaseUrl}/api/heartbeat/$userId",
       ),
       headers: {
         "Authorization": "Bearer $token",
@@ -165,7 +167,7 @@ class SafetyApiService {
 
     final response = await http.put(
       Uri.parse(
-        "http://192.168.1.6:8084/api/device/ping-bluetooth/$userId",
+        "${ApiConfig.safetyBaseUrl}/api/device/ping-bluetooth/$userId",
       ),
       headers: {
         "Authorization": "Bearer $token",
@@ -176,4 +178,43 @@ class SafetyApiService {
     debugPrint("BLUETOOTH STATUS = ${response.statusCode}");
   }
 
+  static Future<void> updateTracking({
+    required double latitude,
+    required double longitude,
+  }) async {
+
+    final prefs = await SharedPreferences.getInstance();
+
+    final token = prefs.getString("token");
+    final userId = prefs.getString("userId");
+
+    if (token == null || userId == null) return;
+
+    final response = await http.post(
+
+      Uri.parse(
+        "${ApiConfig.safetyBaseUrl}/api/tracking/update",
+      ),
+
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+
+      body: jsonEncode({
+
+        "userId": userId,
+        "trackingId": "track-1",
+
+        "latitude": latitude,
+        "longitude": longitude,
+
+        "accuracyMeters": 5,
+        "speed": 10
+
+      }),
+    ).timeout(const Duration(seconds: 10));
+
+    debugPrint("TRACKING STATUS = ${response.statusCode}");
+  }
 }

@@ -42,9 +42,10 @@ class _HomeScreenState extends State<HomeScreen> {
   static const int shakeCooldownMs = 800;      // gap between shakes
   static const int shakeWindowMs = 3000;       // total window for 3 shakes
 
-  // heartbeat
+  // Timers
   Timer? _heartbeatTimer;
   Timer? _bluetoothTimer;
+  Timer? _trackingTimer;
 
 
   // 🎨 THEME COLORS
@@ -74,6 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (state == "PRE_ALERT") {
       Navigator.pushNamed(context, '/pre-alert');
     } else if (state == "SOS_ACTIVE") {
+      _startTracking();
       Navigator.pushNamed(context, '/sos-active');
     }
   }
@@ -167,6 +169,29 @@ class _HomeScreenState extends State<HomeScreen> {
         });
   }
 
+  void _startTracking() {
+
+    _trackingTimer =
+        Timer.periodic(const Duration(seconds: 10), (_) async {
+
+          try {
+
+            if (_currentLatLng == null) return;
+
+            await SafetyApiService.updateTracking(
+
+              latitude: _currentLatLng!.latitude,
+              longitude: _currentLatLng!.longitude,
+
+            );
+
+          } catch (e) {
+
+            debugPrint("TRACKING ERROR: $e");
+          }
+        });
+  }
+
   Future<void> _onTripleShake() async {
     try {
       await SafetyApiService.sendEvent(
@@ -203,6 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _accelSub?.cancel();
     _heartbeatTimer?.cancel();
     _bluetoothTimer?.cancel();
+    _trackingTimer?.cancel();
     super.dispose();
   }
 
