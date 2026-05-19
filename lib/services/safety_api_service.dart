@@ -22,7 +22,7 @@ class SafetyApiService {
     print("EVENT: $event");
     if (token == null || userId == null) return;
 
-    final uri = Uri.parse("${ApiConfig.safetyBaseUrl}/event").replace(
+    final uri = Uri.parse("${ApiConfig.safetyBaseUrl}/api/sos/event").replace(
       queryParameters: {
         "userId": userId,
         "event": event,
@@ -235,7 +235,34 @@ class SafetyApiService {
     final response = await http.post(
 
       Uri.parse(
-        "${ApiConfig.safetyBaseUrl}/api/device/vitals/update",
+        "${ApiConfig.safetyBaseUrl}/api/device/vitals/update"
+            "?userId=$userId"
+            "&heartRate=$heartRate"
+            "&movementScore=$movementScore",
+      ),
+
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+
+    ).timeout(const Duration(seconds: 10));
+
+    debugPrint("VITALS STATUS = ${response.statusCode}");
+  }
+
+  static Future<void> markDeviceOffBody() async {
+
+    final prefs = await SharedPreferences.getInstance();
+
+    final token = prefs.getString("token");
+    final userId = prefs.getString("userId");
+
+    if (token == null || userId == null) return;
+
+    final response = await http.post(
+
+      Uri.parse(
+          "${ApiConfig.safetyBaseUrl}/api/device/off-body/$userId",
       ),
 
       headers: {
@@ -243,15 +270,8 @@ class SafetyApiService {
         "Content-Type": "application/json",
       },
 
-      body: jsonEncode({
-
-        "userId": userId,
-        "heartRate": heartRate,
-        "movementScore": movementScore,
-
-      }),
     ).timeout(const Duration(seconds: 10));
 
-    debugPrint("VITALS STATUS = ${response.statusCode}");
+    debugPrint("OFF BODY STATUS = ${response.statusCode}");
   }
 }
