@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../core/config/api_config.dart';
 import 'login_screen.dart';
 import 'verify_otp_screen.dart';
 
@@ -44,8 +45,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => loading = true);
 
-    const baseUrl = "http://192.168.1.6:8080";
-    final url = Uri.parse("$baseUrl/api/auth/register");
+   // const baseUrl = "http://192.168.1.6:8080";
+    final url = Uri.parse("${ApiConfig.authBaseUrl}/api/auth/register");
 
     try {
       final response = await http.post(
@@ -58,7 +59,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }),
       ).timeout(const Duration(seconds: 10));
 
-      setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = jsonDecode(response.body);
@@ -96,7 +99,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         showSnack(errorMessage);
       }
     } catch (e) {
-      setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
       showSnack("Something went wrong. Please try again.");
     }
   }

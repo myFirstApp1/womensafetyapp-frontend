@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/config/api_config.dart';
+
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -31,6 +33,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   File? localImageFile;
 
   @override
+  void dispose() {
+
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    addressCtrl.dispose();
+
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _fetchProfileForEdit();
@@ -45,7 +57,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (token == null || userId == null) return;
 
       final url =
-      Uri.parse("http://192.168.1.6:8082/api/users/$userId");
+      Uri.parse("${ApiConfig.userBaseUrl}/api/users/$userId");
 
       final response = await http.get(
         url,
@@ -222,7 +234,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       final url =
-      Uri.parse("http://192.168.1.6:8082/api/users/$userId");
+      Uri.parse("${ApiConfig.userBaseUrl}/api/users/$userId");
 
       final response = await http.put(
         url,

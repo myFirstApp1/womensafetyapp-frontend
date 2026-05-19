@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/config/api_config.dart';
 import '../auth/screens/login_screen.dart';
 import 'edit_profile_screen.dart';
 
@@ -45,7 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 
       final Map<String, dynamic> decoded = jsonDecode(payloadDecoded);
-      return decoded['email'];
+      return decoded['sub'];
     } catch (_) {
       return null;
     }
@@ -77,10 +78,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
 
-      print("TOKEN USER ID: $userId");
-
       final url =
-      Uri.parse("http://192.168.1.6:8082/api/users/$userId");
+      Uri.parse("${ApiConfig.userBaseUrl}/api/users/$userId");
 
       final response = await http.get(
         url,

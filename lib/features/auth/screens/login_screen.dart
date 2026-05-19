@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:womensafetyapp/features/auth/screens/verify_otp_screen.dart';
 
+import '../../../core/config/api_config.dart';
 import '../../home/home_screen.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
@@ -36,8 +37,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => loading = true);
 
-    const baseUrl = "http://192.168.1.6:8080";//"http://10.218.102.76:8080";
-    final url = Uri.parse("$baseUrl/api/auth/login");
+ //   const baseUrl = "http://192.168.1.6:8080";//"http://10.218.102.76:8080";
+    final url = Uri.parse("${ApiConfig.authBaseUrl}/api/auth/login");
 
     try {
       final response = await http
@@ -54,7 +55,9 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint("LOGIN STATUS: ${response.statusCode}");
       debugPrint("LOGIN BODY: ${response.body}");
 
-      setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -128,7 +131,9 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
       showSnack("Network or unexpected error occurred");
     }
   }

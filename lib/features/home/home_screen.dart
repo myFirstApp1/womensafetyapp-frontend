@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -7,10 +8,10 @@ import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/config/api_config.dart';
 import '../../services/safety_api_service.dart';
 import '../userprofile/emergency_contacts_screen.dart';
 import '../userprofile/profile_screen.dart';
-import 'dart:async';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:flutter/services.dart';
 
@@ -57,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchUserProfile();
     _startShakeListener();
     //_syncWithBackend();
-
   }
 
   Future<void> _restoreState() async {
@@ -174,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (token == null || userId == null) return;
 
       final url =
-      Uri.parse("http://192.168.1.6:8082/api/users/$userId");
+      Uri.parse("${ApiConfig.userBaseUrl}/api/users/$userId");
 
       final response = await http.get(
         url,
@@ -186,7 +186,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         setState(() {
           userName = data["name"] ?? "User";
           profileImageUrl = data["profilePictureUrl"];
@@ -224,7 +223,11 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoadingLocation = false;
       });
     } catch (_) {
-      _isLoadingLocation = false;
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+        });
+      }
     }
   }
 
@@ -333,10 +336,20 @@ class _HomeScreenState extends State<HomeScreen> {
               // 🔹 SOS
               Center(
                 child: GestureDetector(
-                  onTap: () {
+                  onTap: () async {
+
+                    if (_currentLatLng == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Location not ready yet"),
+                        ),
+                      );
+                      return;
+                    }
+
                     Navigator.pushNamed(context, '/sos-active');
 
-                    SafetyApiService.sendEvent(
+                    await SafetyApiService.sendEvent(
                       event: "SOS_BUTTON_PRESSED",
                       lat: _currentLatLng!.latitude,
                       lng: _currentLatLng!.longitude,

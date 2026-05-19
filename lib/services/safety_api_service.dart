@@ -1,8 +1,9 @@
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:womensafetyapp/core/config/api_config.dart';
 
 class SafetyApiService {
-  static const _baseUrl = "http://192.168.1.6:8084/api/sos";
+  //static const _baseUrl = "http://192.168.1.6:8084/api/sos";
   static Future<void> sendEvent({
     required String event,
     double? lat,
@@ -18,7 +19,7 @@ class SafetyApiService {
     print("EVENT: $event");
     if (token == null || userId == null) return;
 
-    final uri = Uri.parse("$_baseUrl/event").replace(
+    final uri = Uri.parse("${ApiConfig.safetyBaseUrl}/event").replace(
       queryParameters: {
         "userId": userId,
         "event": event,
@@ -91,7 +92,7 @@ class SafetyApiService {
     if (token == null || userId == null) return "IDLE";
 
     final response = await http.get(
-      Uri.parse("$_baseUrl/current?userId=$userId"),
+      Uri.parse("${ApiConfig.safetyBaseUrl}/current?userId=$userId"),
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",

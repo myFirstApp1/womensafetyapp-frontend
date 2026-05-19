@@ -14,6 +14,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   int currentIndex = 0;
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   // 🎨 THEME COLORS
   static const bgPink = Color(0xFFFFF1F5);
   static const primaryPink = Color(0xFFF06292);
