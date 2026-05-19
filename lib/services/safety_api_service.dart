@@ -1,9 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:womensafetyapp/core/config/api_config.dart';
+import 'package:flutter/foundation.dart';
 
 class SafetyApiService {
-  //static const _baseUrl = "http://192.168.1.6:8084/api/sos";
   static Future<void> sendEvent({
     required String event,
     double? lat,
@@ -48,6 +49,9 @@ class SafetyApiService {
       throw Exception("Failed to send SOS event");
     }
   }
+
+
+
   // static Future<void> sendEvent({
   //   required String event,
   //   double? lat,
@@ -84,6 +88,29 @@ class SafetyApiService {
   //   }
   // }
 
+             // feature devices-intelligence
+
+  static Future<void> startProtection() async {
+
+    final prefs = await SharedPreferences.getInstance();
+
+    final token = prefs.getString("token");
+    final userId = prefs.getString("userId");
+
+    if (token == null || userId == null) return;
+
+    final response = await http.post(
+      Uri.parse(
+        "${ApiConfig.safetyBaseUrl}/api/heartbeat/start?userId=$userId",
+      ),
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    debugPrint("START PROTECTION = ${response.statusCode}");
+  }
+
   static Future<String> getCurrentState() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("token");
@@ -103,6 +130,50 @@ class SafetyApiService {
       return response.body.replaceAll('"', '');
     }
     return "IDLE";
+  }
+
+  static Future<void> sendHeartbeat() async {
+
+    final prefs = await SharedPreferences.getInstance();
+
+    final token = prefs.getString("token");
+    final userId = prefs.getString("userId");
+
+    if (token == null || userId == null) return;
+
+    final response = await http.put(
+      Uri.parse(
+        "http://192.168.1.6:8084/api/heartbeat/$userId",
+      ),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    ).timeout(const Duration(seconds: 10));
+
+    debugPrint("HEARTBEAT STATUS = ${response.statusCode}");
+  }
+
+  static Future<void> sendBluetoothPing() async {
+
+    final prefs = await SharedPreferences.getInstance();
+
+    final token = prefs.getString("token");
+    final userId = prefs.getString("userId");
+
+    if (token == null || userId == null) return;
+
+    final response = await http.put(
+      Uri.parse(
+        "http://192.168.1.6:8084/api/device/ping-bluetooth/$userId",
+      ),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    ).timeout(const Duration(seconds: 10));
+
+    debugPrint("BLUETOOTH STATUS = ${response.statusCode}");
   }
 
 }

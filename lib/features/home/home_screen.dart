@@ -42,6 +42,10 @@ class _HomeScreenState extends State<HomeScreen> {
   static const int shakeCooldownMs = 800;      // gap between shakes
   static const int shakeWindowMs = 3000;       // total window for 3 shakes
 
+  // heartbeat
+  Timer? _heartbeatTimer;
+  Timer? _bluetoothTimer;
+
 
   // 🎨 THEME COLORS
   static const bgPink = Color(0xFFFFF1F5);
@@ -58,6 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchUserProfile();
     _startShakeListener();
     //_syncWithBackend();
+    _startHeartbeat();
+    _startBluetoothPing();
   }
 
   Future<void> _restoreState() async {
@@ -127,6 +133,39 @@ class _HomeScreenState extends State<HomeScreen> {
   //     Navigator.pushNamed(context, '/sos-active');
   //   }
   // }
+               // features devices-intelligence
+
+  void _startHeartbeat() {
+
+    _heartbeatTimer =
+        Timer.periodic(const Duration(seconds: 60), (_) async {
+
+          try {
+
+            await SafetyApiService.sendHeartbeat();
+
+          } catch (e) {
+
+            debugPrint("HEARTBEAT ERROR: $e");
+          }
+        });
+  }
+
+  void _startBluetoothPing() {
+
+    _bluetoothTimer =
+        Timer.periodic(const Duration(seconds: 20), (_) async {
+
+          try {
+
+            await SafetyApiService.sendBluetoothPing();
+
+          } catch (e) {
+
+            debugPrint("BLUETOOTH ERROR: $e");
+          }
+        });
+  }
 
   Future<void> _onTripleShake() async {
     try {
@@ -162,6 +201,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _accelSub?.cancel();
+    _heartbeatTimer?.cancel();
+    _bluetoothTimer?.cancel();
     super.dispose();
   }
 
