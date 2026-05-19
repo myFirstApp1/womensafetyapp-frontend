@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../core/config/api_config.dart';
 import 'login_screen.dart';
 
 class VerifyOtpScreen extends StatefulWidget {
@@ -33,7 +34,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   bool isVerifying = false;
   bool isResending = false;
 
-  final String baseUrl = "http://192.168.1.6:8080";
+  //final String baseUrl = "http://192.168.1.6:8080";
   late String txnId;
 
   // 🎨 THEME COLORS
@@ -68,7 +69,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/api/auth/otp/verify"),
+        Uri.parse("${ApiConfig.authBaseUrl}/api/auth/otp/verify"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "txnId": txnId,
@@ -107,7 +108,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/api/auth/otp/resend"),
+        Uri.parse("${ApiConfig.authBaseUrl}/api/auth/otp/resend"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": widget.email,

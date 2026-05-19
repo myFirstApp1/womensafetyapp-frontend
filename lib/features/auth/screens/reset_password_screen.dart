@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../../../core/config/api_config.dart';
 import 'password_success_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -24,7 +25,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   PasswordStrength _passwordStrength = PasswordStrength.weak;
 
-  final String baseUrl = "http://192.168.1.6:8080";
+ // final String baseUrl = "http://192.168.1.6:8080";
 
   // 🔹 Password strength logic (UNCHANGED)
   PasswordStrength checkStrength(String password) {
@@ -77,7 +78,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/api/auth/reset-password"),
+        Uri.parse("${ApiConfig.authBaseUrl}/api/auth/reset-password"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "token": widget.token,
@@ -100,7 +101,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _showMessage("Something went wrong");
     }
 
-    setState(() => isLoading = false);
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
   }
 
   void _showMessage(String msg) {

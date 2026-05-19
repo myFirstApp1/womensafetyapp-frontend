@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/config/api_config.dart';
 import 'add_contact_sheet.dart';
 
 class EmergencyContactsScreen extends StatefulWidget {
@@ -14,7 +15,7 @@ class EmergencyContactsScreen extends StatefulWidget {
 }
 
 class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
-  final String baseUrl = "http://192.168.1.6:8082";
+ // final String baseUrl = "http://192.168.1.6:8082";
   List contacts = [];
   bool isLoading = true;
 
@@ -60,7 +61,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     }
 
     final response = await http.get(
-      Uri.parse("$baseUrl/api/users/contacts/$userId"),
+      Uri.parse("${ApiConfig.userBaseUrl}/api/users/contacts/$userId"),
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
@@ -68,9 +69,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     );
 
     if (response.statusCode == 200) {
-      setState(() {
-        contacts = jsonDecode(response.body);
-      });
+      contacts = jsonDecode(response.body);
     }
 
     setState(() => isLoading = false);
@@ -86,7 +85,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     }
 
     final response = await http.delete(
-      Uri.parse("$baseUrl/api/users/contacts/$userId/$contactId"),
+      Uri.parse("${ApiConfig.userBaseUrl}/api/users/contacts/$userId/$contactId"),
       headers: {"Authorization": "Bearer $token"},
     );
 

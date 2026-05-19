@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../core/config/api_config.dart';
+
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -14,7 +16,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController emailController = TextEditingController();
   bool isLoading = false;
 
-  final String baseUrl = "http://192.168.1.6:8080";//"http://10.218.102.76:8080";
+  //final String baseUrl = "http://192.168.1.6:8080";//"http://10.218.102.76:8080";
+  final url = Uri.parse(ApiConfig.authBaseUrl);
 
   bool canResend = false;
   int secondsRemaining = 60;
@@ -55,7 +58,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/api/auth/forgot-password"),
+        Uri.parse("$ApiConfig.authBaseUrl/api/auth/forgot-password"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": emailController.text.trim(),

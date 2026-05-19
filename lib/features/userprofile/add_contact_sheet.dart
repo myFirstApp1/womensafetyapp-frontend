@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/config/api_config.dart';
+
 class AddContactSheet extends StatefulWidget {
   final Future<void> Function() onAdded;
   final Map<String, dynamic>? contact;
@@ -26,7 +28,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
   final relationController = TextEditingController();
 
   bool isSaving = false;
-  final String baseUrl = "http://192.168.1.6:8082";
+  //final String baseUrl = "http://192.168.1.6:8082";
 
   // 🌸 theme colors
   static const rosePrimary = Color(0xFFF06292);
@@ -83,13 +85,20 @@ class _AddContactSheetState extends State<AddContactSheet> {
       final token = prefs.getString("token");
       final userId = prefs.getString("userId");
 
-      if (token == null || userId == null) return;
+      if (token == null || userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Session expired. Please login again."),
+          ),
+        );
+        return;
+      }
 
       final isEdit = widget.contact != null;
 
       final url = isEdit
-          ? "$baseUrl/api/users/contacts/$userId/${widget.contact!["id"]}"
-          : "$baseUrl/api/users/contacts/$userId";
+          ? "${ApiConfig.userBaseUrl}/api/users/contacts/$userId/${widget.contact!["id"]}"
+          : "${ApiConfig.userBaseUrl}/api/users/contacts/$userId";
 
       final method = isEdit ? http.put : http.post;
 

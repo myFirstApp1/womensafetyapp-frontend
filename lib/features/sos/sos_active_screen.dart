@@ -61,42 +61,6 @@ class _SosActiveScreenState extends State<SosActiveScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async => false, // 🚫 disable back
-      child: Scaffold(
-        backgroundColor: const Color(0xFF8B0000),
-        body: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Text(
-                  "SOS ACTIVE",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  "Help is being alerted.\nStay calm and keep the app open.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-  @override
-  Widget build(BuildContext context) {
-    return WillPopScope(
       onWillPop: () async => false, // 🚫 disable back button
       child: Scaffold(
         backgroundColor: const Color(0xFF8B0000), // deep red
@@ -170,3 +134,4 @@ class _SosActiveScreenState extends State<SosActiveScreen> {
       ),
     );
   }
+}
