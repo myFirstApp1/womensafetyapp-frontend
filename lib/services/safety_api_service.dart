@@ -217,4 +217,41 @@ class SafetyApiService {
 
     debugPrint("TRACKING STATUS = ${response.statusCode}");
   }
+
+  static Future<void> updateVitals({
+
+    required int heartRate,
+    required int movementScore,
+
+  }) async {
+
+    final prefs = await SharedPreferences.getInstance();
+
+    final token = prefs.getString("token");
+    final userId = prefs.getString("userId");
+
+    if (token == null || userId == null) return;
+
+    final response = await http.post(
+
+      Uri.parse(
+        "${ApiConfig.safetyBaseUrl}/api/device/vitals/update",
+      ),
+
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+
+      body: jsonEncode({
+
+        "userId": userId,
+        "heartRate": heartRate,
+        "movementScore": movementScore,
+
+      }),
+    ).timeout(const Duration(seconds: 10));
+
+    debugPrint("VITALS STATUS = ${response.statusCode}");
+  }
 }

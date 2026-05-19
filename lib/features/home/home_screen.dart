@@ -42,10 +42,15 @@ class _HomeScreenState extends State<HomeScreen> {
   static const int shakeCooldownMs = 800;      // gap between shakes
   static const int shakeWindowMs = 3000;       // total window for 3 shakes
 
+  // testing guardian
+  int simulatedHeartRate = 160;
+  int simulatedMovement = 95;
+
   // Timers
   Timer? _heartbeatTimer;
   Timer? _bluetoothTimer;
   Timer? _trackingTimer;
+  Timer? _vitalsTimer;
 
 
   // 🎨 THEME COLORS
@@ -65,6 +70,17 @@ class _HomeScreenState extends State<HomeScreen> {
     //_syncWithBackend();
     _startHeartbeat();
     _startBluetoothPing();
+    _startVitalsSimulation();
+  }
+
+  @override
+  void dispose() {
+    _accelSub?.cancel();
+    _heartbeatTimer?.cancel();
+    _bluetoothTimer?.cancel();
+    _trackingTimer?.cancel();
+    _vitalsTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _restoreState() async {
@@ -192,6 +208,32 @@ class _HomeScreenState extends State<HomeScreen> {
         });
   }
 
+  void _startVitalsSimulation() {
+
+    _vitalsTimer =
+        Timer.periodic(const Duration(seconds: 30), (_) async {
+
+          try {
+
+            // 🔥 Simulated wearable values
+
+            int simulatedHeartRate = 82;
+            int simulatedMovement = 12;
+
+            await SafetyApiService.updateVitals(
+
+              heartRate: simulatedHeartRate,
+              movementScore: simulatedMovement,
+
+            );
+
+          } catch (e) {
+
+            debugPrint("VITALS ERROR: $e");
+          }
+        });
+  }
+
   Future<void> _onTripleShake() async {
     try {
       await SafetyApiService.sendEvent(
@@ -223,14 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // ❌ No state change
   }
 
-  @override
-  void dispose() {
-    _accelSub?.cancel();
-    _heartbeatTimer?.cancel();
-    _bluetoothTimer?.cancel();
-    _trackingTimer?.cancel();
-    super.dispose();
-  }
+
 
   Future<void> _fetchUserProfile() async {
     try {
